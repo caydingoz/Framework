@@ -3,7 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31912.275
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Framework.AuthServer", "Framework.AuthServer\Framework.AuthServer.csproj", "{CF29B377-7559-407A-A755-DD92EF706373}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework.AuthServer", "Framework.AuthServer\Framework.AuthServer.csproj", "{CF29B377-7559-407A-A755-DD92EF706373}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework.Shared", "Framework.Shared\Framework.Shared.csproj", "{2C6611C8-BFFC-4930-B51C-8466015CC720}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework.EF", "Framework.EF\Framework.EF.csproj", "{4E824850-7BE8-430D-B103-97A6B0A82313}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework.Test", "Framework.Test\Framework.Test.csproj", "{4ACB5E6A-E41B-4F96-8CB4-922672B4EFA6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Framework.Domain", "Framework.Domain\Framework.Domain.csproj", "{384A9C79-2761-43B1-AA7E-3803423D4152}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Framework.MongoDB", "Framework.MongoDB\Framework.MongoDB.csproj", "{7E1D5DA5-FF55-4328-8870-D6B23F9D72EF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +25,26 @@ Global
 		{CF29B377-7559-407A-A755-DD92EF706373}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CF29B377-7559-407A-A755-DD92EF706373}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CF29B377-7559-407A-A755-DD92EF706373}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2C6611C8-BFFC-4930-B51C-8466015CC720}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2C6611C8-BFFC-4930-B51C-8466015CC720}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2C6611C8-BFFC-4930-B51C-8466015CC720}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2C6611C8-BFFC-4930-B51C-8466015CC720}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E824850-7BE8-430D-B103-97A6B0A82313}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E824850-7BE8-430D-B103-97A6B0A82313}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E824850-7BE8-430D-B103-97A6B0A82313}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E824850-7BE8-430D-B103-97A6B0A82313}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4ACB5E6A-E41B-4F96-8CB4-922672B4EFA6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4ACB5E6A-E41B-4F96-8CB4-922672B4EFA6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4ACB5E6A-E41B-4F96-8CB4-922672B4EFA6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4ACB5E6A-E41B-4F96-8CB4-922672B4EFA6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{384A9C79-2761-43B1-AA7E-3803423D4152}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{384A9C79-2761-43B1-AA7E-3803423D4152}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{384A9C79-2761-43B1-AA7E-3803423D4152}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{384A9C79-2761-43B1-AA7E-3803423D4152}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E1D5DA5-FF55-4328-8870-D6B23F9D72EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E1D5DA5-FF55-4328-8870-D6B23F9D72EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E1D5DA5-FF55-4328-8870-D6B23F9D72EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E1D5DA5-FF55-4328-8870-D6B23F9D72EF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
