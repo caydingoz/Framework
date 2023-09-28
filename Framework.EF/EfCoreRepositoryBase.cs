@@ -125,11 +125,10 @@ namespace Framework.EF
         }
         public async Task<T> InsertOneAsync(T entity, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
-            //entity.Id = await new SequentialGuidValueGenerator().NextAsync(DbContext.Attach(entity));
-            entity.Id = EntityExtensions.NewId(entity.Id);
             entity.SetUpdatedAndCreatedDate();
 
-            await DbContext.AddAsync(entity, cancellationToken);
+            if (typeof(U) == typeof(Guid) && (entity.Id == null || entity.Id.ToString() == Guid.Empty.ToString()))
+                entity.Id = (U)Convert.ChangeType(await new SequentialGuidValueGenerator().NextAsync(await DbContext.AddAsync(entity, cancellationToken), cancellationToken), typeof(U));
 
             if (unitOfWork is not null)
             {
