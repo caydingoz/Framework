@@ -12,10 +12,12 @@ using Framework.Domain.Interfaces.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var jwtConfiguration = new JWTConfiguration();
+JWTConfiguration jwtConfiguration = new();
+EFConfiguration efConfiguration = new();
 builder.Configuration.Bind("Configuration:JWT", jwtConfiguration);
+builder.Configuration.Bind("Configuration:EF", efConfiguration);
 
-var configuration = new Configuration { JWT = jwtConfiguration };
+var configuration = new Configuration { JWT = jwtConfiguration, EF = efConfiguration };
 
 builder.Services.AddSingleton(configuration); 
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
@@ -48,7 +50,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AuthServerDbContext>(
-    options => options.UseSqlServer(builder.Configuration.GetSection("Configuration:ConnectionStrings:DefaultConnection").Value), ServiceLifetime.Scoped);
+    options => options.UseSqlServer(configuration.EF.ConnectionString), ServiceLifetime.Scoped);
 
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
