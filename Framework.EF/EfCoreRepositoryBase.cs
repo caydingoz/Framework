@@ -34,16 +34,14 @@ namespace Framework.EF
         protected bool IsCachable { get; }
         protected string CacheKey { get; }
         protected TimeSpan? CacheTimeout { get; }
-        protected virtual IQueryable<T> GetDbSetWithAllIncludes(DbContext DbContext) => DbContext.Set<T>();
+        public async Task<T?> GetByIdAsync(U id, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+           => await SingleOrDefaultAsync(x => x.Id.Equals(id), asNoTracking, includeLogicalDeleted, includes, cancellationToken);
 
-        public async Task<T?> GetByIdAsync(U id, bool includeAll = false, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
-           => await SingleOrDefaultAsync(x => x.Id.Equals(id), includeAll, asNoTracking, includeLogicalDeleted, includes, cancellationToken);
-
-        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool includeAll = false, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
-                var dbSet = GetDbSetWithFiltered(includeAll, asNoTracking, includeLogicalDeleted, includes);
+                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
                 return selector == null ? await dbSet.SingleOrDefaultAsync(cancellationToken) : await dbSet.SingleOrDefaultAsync(selector, cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(cancellationToken, includeLogicalDeleted);
@@ -53,11 +51,11 @@ namespace Framework.EF
             }
             return null;
         }
-        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool includeAll = false, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
-                var dbSet = GetDbSetWithFiltered(includeAll, asNoTracking, includeLogicalDeleted, includes);
+                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
                 return selector == null ? await dbSet.FirstOrDefaultAsync(cancellationToken) : await dbSet.FirstOrDefaultAsync(selector, cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(cancellationToken, includeLogicalDeleted);
@@ -67,11 +65,11 @@ namespace Framework.EF
             }
             return null;
         }
-        public async Task<IEnumerable<T>> WhereAsync(Expression<Func<T, bool>> selector, bool includeAll = false, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<T>> WhereAsync(Expression<Func<T, bool>> selector, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
-                var dbSet = GetDbSetWithFiltered(includeAll, asNoTracking, includeLogicalDeleted, includes);
+                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
                 return await dbSet.Where(selector).SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(cancellationToken, includeLogicalDeleted);
@@ -81,11 +79,11 @@ namespace Framework.EF
             }
             return Enumerable.Empty<T>();
         }
-        public async Task<IEnumerable<T>> GetAllAsync(bool includeAll = false, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<T>> GetAllAsync(bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
-                var dbSet = GetDbSetWithFiltered(includeAll, asNoTracking, includeLogicalDeleted, includes);
+                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
                 return await dbSet.AsQueryable().SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(cancellationToken, includeLogicalDeleted);
@@ -262,9 +260,9 @@ namespace Framework.EF
                 return DbContext.Set<T>().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
             return DbContext.Set<T>();
         }
-        private IQueryable<T> GetDbSetWithFiltered(bool includeAll = false, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null)
+        private IQueryable<T> GetDbSetWithFiltered(bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null)
         {
-            var query = includeAll ? GetDbSetWithAllIncludes(DbContext) : DbContext.Set<T>().MultipleInclude(includes);
+            var query = DbContext.Set<T>().MultipleInclude(includes);
             if (IsLogicalDelete)
                 query = query.WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
             if (asNoTracking)

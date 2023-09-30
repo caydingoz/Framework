@@ -3,7 +3,6 @@ using Framework.Domain.Interfaces.Repositories;
 using Framework.EF;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Framework.Test.Repository
 {
@@ -50,9 +49,6 @@ namespace Framework.Test.Repository
         public UpdateTestRepository(TestDbContext dbContext) : base(dbContext)
         {
         }
-
-        protected override IQueryable<Parent> GetDbSetWithAllIncludes(DbContext DbContext) => DbContext.Set<Parent>()
-            .Include(x => x.FirstLayerChilds).ThenInclude(y => y.SecondLayerChilds);
     }
     public interface IUpdateTestRepository : IGenericRepository<Parent, int>
     {
