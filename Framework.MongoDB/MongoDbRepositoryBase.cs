@@ -40,9 +40,7 @@ namespace Framework.MongoDB
         {
             try
             {
-                var configuration = provider.GetService<MongoDbConfiguration>();
-                if (configuration is null)
-                    throw new Exception("MongoDb credentials missing!");
+                var configuration = provider.GetService<MongoDbConfiguration>() ?? throw new Exception("MongoDb credentials missing!");
                 var client = new MongoClient(configuration.ConnectionString);
                 Database = client.GetDatabase(configuration.Database);
                 Collection = Database.GetCollection<T>(typeof(T).Name.ToLowerInvariant());
