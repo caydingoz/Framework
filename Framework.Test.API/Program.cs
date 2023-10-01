@@ -11,7 +11,7 @@ builder.Configuration.Bind("Configuration:MongoDb", mongoDbConfiguration);
 var configuration = new Configuration { MongoDb = mongoDbConfiguration };
 
 builder.Services.AddSingleton(configuration);
-builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, ObjectId>, MongoDbRepositoryBase<Log, ObjectId>>();
+builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

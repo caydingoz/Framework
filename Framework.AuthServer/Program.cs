@@ -27,7 +27,7 @@ var configuration = new Configuration { JWT = jwtConfiguration, EF = efConfigura
 builder.Services.AddSingleton(configuration); 
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddScoped<IGenericRepository<UserRefreshToken, int>, EfCoreRepositoryBase<UserRefreshToken, AuthServerDbContext, int>>();
-builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, ObjectId>, MongoDbRepositoryBase<Log, ObjectId>>();
+builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
 builder.Services.AddAuthentication(options =>
 {

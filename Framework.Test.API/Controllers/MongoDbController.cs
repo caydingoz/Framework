@@ -11,8 +11,8 @@ namespace Framework.Test.API.Controllers
     [Route("mongo")]
     public class MongoDbController : ControllerBase
     {
-        IGenericRepositoryWithNonRelation<Log, ObjectId> MongoDbRepo { get; set; }
-        public MongoDbController(IGenericRepositoryWithNonRelation<Log, ObjectId> mongoRepo)
+        IGenericRepositoryWithNonRelation<Log, string> MongoDbRepo { get; set; }
+        public MongoDbController(IGenericRepositoryWithNonRelation<Log, string> mongoRepo)
         {
             MongoDbRepo = mongoRepo;
         }
@@ -31,7 +31,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpGet("id")]
-        public async Task<IActionResult> GetByIdAsync(ObjectId id)
+        public async Task<IActionResult> GetByIdAsync(string id)
         {
             try
             {
@@ -163,7 +163,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpDelete]
-        public async Task<IActionResult> DeleteOneAsync(ObjectId id)
+        public async Task<IActionResult> DeleteOneAsync(string id)
         {
             try
             {
@@ -176,7 +176,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpDelete("many")]
-        public async Task<IActionResult> UpdateManyAsync(ObjectId[] ids)
+        public async Task<IActionResult> UpdateManyAsync(string[] ids)
         {
             try
             {
