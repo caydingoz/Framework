@@ -65,7 +65,7 @@ namespace Framework.EF
             }
             return null;
         }
-        public async Task<IEnumerable<T>> WhereAsync(Expression<Func<T, bool>> selector, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
+        public async Task<ICollection<T>> WhereAsync(Expression<Func<T, bool>> selector, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
@@ -75,11 +75,11 @@ namespace Framework.EF
             var cachedData = await GetCachedDataAsync(cancellationToken, includeLogicalDeleted);
             if (cachedData is not null)
             {
-                return cachedData.SortBy(sorts).Paginate(pagination);
+                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
             }
-            return Enumerable.Empty<T>();
+            return Enumerable.Empty<T>().ToList();
         }
-        public async Task<IEnumerable<T>> GetAllAsync(bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
+        public async Task<ICollection<T>> GetAllAsync(bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
@@ -89,9 +89,9 @@ namespace Framework.EF
             var cachedData = await GetCachedDataAsync(cancellationToken, includeLogicalDeleted);
             if (cachedData is not null)
             {
-                return cachedData.SortBy(sorts).Paginate(pagination);
+                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
             }
-            return Enumerable.Empty<T>();
+            return Enumerable.Empty<T>().ToList();
         }
         public async Task<long> CountAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
@@ -124,9 +124,10 @@ namespace Framework.EF
         public async Task<T> InsertOneAsync(T entity, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
             entity.SetUpdatedAndCreatedDate();
+            var entryEntity = await DbContext.AddAsync(entity, cancellationToken);
 
             if (typeof(U) == typeof(Guid) && (entity.Id == null || entity.Id.ToString() == Guid.Empty.ToString()))
-                entity.Id = (U)Convert.ChangeType(await new SequentialGuidValueGenerator().NextAsync(await DbContext.AddAsync(entity, cancellationToken), cancellationToken), typeof(U));
+                entity.Id = (U)Convert.ChangeType(await new SequentialGuidValueGenerator().NextAsync(entryEntity, cancellationToken), typeof(U));
 
             if (unitOfWork is not null)
             {
@@ -205,11 +206,8 @@ namespace Framework.EF
         }
         public async Task DeleteOneAsync(U id, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
-            var entity = await DbContext.Set<T>().FindAsync(new object[] { id }, cancellationToken: cancellationToken);
-
-            if (entity is null)
-                throw new Exception("Not found an entity with given id!");
-
+            var entity = await DbContext.Set<T>().FindAsync(new object[] { id }, cancellationToken: cancellationToken) ?? throw new Exception("Not found an entity with given id!");
+            
             if (IsLogicalDelete)
             {
                 (entity as ILogicalDelete).Deleted = true;
@@ -274,10 +272,10 @@ namespace Framework.EF
             var json = await CacheDb.StringGetAsync(CacheKey);
             if (json.IsNullOrEmpty)
                 return null;
-            var data = JsonSerializer.Deserialize<IQueryable<T>>(json);
+            var data = JsonSerializer.Deserialize<IEnumerable<T>>(json);
             if (IsLogicalDelete)
-                data = data.WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
-            return data;
+                data = data.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
+            return data.AsQueryable();
         }
         private async Task UpdateCacheAsync(CancellationToken cancellationToken = default)
         {

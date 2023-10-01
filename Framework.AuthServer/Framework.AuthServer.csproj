@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Framework.Application\Framework.Application.csproj" />
     <ProjectReference Include="..\Framework.EF\Framework.EF.csproj" />
     <ProjectReference Include="..\Framework.Shared\Framework.Shared.csproj" />
   </ItemGroup>
