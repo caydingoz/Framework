@@ -124,7 +124,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpPost("many")]
-        public async Task<IActionResult> InsertManyAsync(ICollection<Log> entities)
+        public async Task<IActionResult> InsertManyAsync(Log[] entities)
         {
             try
             {
