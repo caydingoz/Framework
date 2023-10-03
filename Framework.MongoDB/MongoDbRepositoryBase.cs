@@ -17,12 +17,13 @@ namespace Framework.MongoDB
 {
     public class MongoDbRepositoryBase<T, U> : IGenericRepositoryWithNonRelation<T, U> where T : class, IBaseEntity<U>, new()
     {
-        private IMongoDatabase Database;
+        private IMongoDatabase? Database;
         protected IMongoCollection<T> Collection;
 
         public MongoDbRepositoryBase(IServiceProvider provider)
         {
             SetDatabaseAndCollection(provider);
+            if (Collection is null) throw new Exception("Collection null error!");
             IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
             IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
             if (IsCachable)
@@ -42,9 +43,10 @@ namespace Framework.MongoDB
         {
             try
             {
-                var configuration = provider.GetService<Configuration>() ?? throw new Exception("MongoDb credentials missing!");
-                var client = new MongoClient(configuration.MongoDb.ConnectionString);
-                Database = client.GetDatabase(configuration.MongoDb.Database);
+                var configuration = provider.GetService<Configuration>() ?? throw new Exception("MongoDb credentials missing! (not injected)");
+                var mongoDbConfigs = configuration.MongoDb ?? throw new Exception("MongoDb credentials missing! (null)");
+                var client = new MongoClient(mongoDbConfigs.ConnectionString);
+                Database = client.GetDatabase(mongoDbConfigs.Database);
                 Collection = Database.GetCollection<T>(typeof(T).Name.ToLowerInvariant());
             }
             catch (Exception e)
