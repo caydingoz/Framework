@@ -1,5 +1,4 @@
-﻿using Framework.Domain.Entites;
-using Framework.Domain.Extensions;
+﻿using Framework.Domain.Extensions;
 using Framework.Domain.Interfaces.Entities;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Domain.Interfaces.UnitOfWork;
@@ -21,20 +20,21 @@ namespace Framework.EF
         public EfCoreRepositoryBase(TDbContext dbContext)
         {
             DbContext = dbContext;
-            IsLogicalDelete = typeof(T).GetInterface(typeof(ILogicalDelete).FullName, true) != null;
-            IsCachable = typeof(T).GetInterface(typeof(ICachable).FullName, true) != null;
+            IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
+            IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
             if (IsCachable)
             {
-                CacheKey = (new T() as ICachable).GetCacheKey();
-                CacheTimeout = (new T() as ICachable).GetExpireTime();
+                CacheKey = ((ICachable)new T()).GetCacheKey();
+                CacheTimeout = ((ICachable)new T()).GetExpireTime();
             }
         }
 
         private static IDatabase CacheDb => RedisConnectorHelper.Db;
         protected bool IsLogicalDelete { get; }
         protected bool IsCachable { get; }
-        protected string CacheKey { get; }
+        protected string? CacheKey { get; }
         protected TimeSpan? CacheTimeout { get; }
+
         public async Task<T?> GetByIdAsync(U id, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
            => await SingleOrDefaultAsync(x => x.Id.Equals(id), asNoTracking, includeLogicalDeleted, includes, cancellationToken);
 
@@ -46,11 +46,9 @@ namespace Framework.EF
                 return selector == null ? await dbSet.SingleOrDefaultAsync(cancellationToken) : await dbSet.SingleOrDefaultAsync(selector, cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-            {
-                return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
-            }
-            return null;
+            if (cachedData is null)
+                return null;
+            return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
         }
         public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
@@ -60,11 +58,9 @@ namespace Framework.EF
                 return selector == null ? await dbSet.FirstOrDefaultAsync(cancellationToken) : await dbSet.FirstOrDefaultAsync(selector, cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-            {
-                return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
-            }
-            return null;
+            if (cachedData is null)
+                return null;
+            return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
         }
         public async Task<ICollection<T>> WhereAsync(Expression<Func<T, bool>> selector, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
@@ -74,11 +70,9 @@ namespace Framework.EF
                 return await dbSet.Where(selector).SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-            {
-                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
-            }
-            return Enumerable.Empty<T>().ToList();
+            if (cachedData is null)
+                return Enumerable.Empty<T>().ToList();
+            return cachedData.SortBy(sorts).Paginate(pagination).ToList();
         }
         public async Task<ICollection<T>> GetAllAsync(bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
@@ -88,11 +82,9 @@ namespace Framework.EF
                 return await dbSet.AsQueryable().SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-            {
-                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
-            }
-            return Enumerable.Empty<T>().ToList();
+            if (cachedData is null)
+                return Enumerable.Empty<T>().ToList();
+            return cachedData.SortBy(sorts).Paginate(pagination).ToList();
         }
         public async Task<long> CountAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
@@ -102,11 +94,9 @@ namespace Framework.EF
                 return selector == null ? await dbSet.CountAsync(cancellationToken) : await dbSet.CountAsync(selector, cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-            {
-                return selector == null ? cachedData.Count() : cachedData.Count(selector);
-            }
-            return 0;
+            if (cachedData is null)
+                return 0;
+            return selector == null ? cachedData.Count() : cachedData.Count(selector);
         }
         public async Task<bool> AnyAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
@@ -116,11 +106,9 @@ namespace Framework.EF
                 return selector == null ? await dbSet.AnyAsync(cancellationToken) : await dbSet.AnyAsync(selector, cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-            {
-                return selector == null ? cachedData.Any() : cachedData.Any(selector);
-            }
-            return false;
+            if (cachedData is null)
+                return false;
+            return selector == null ? cachedData.Any() : cachedData.Any(selector);
         }
         public async Task<T> InsertOneAsync(T entity, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
@@ -284,10 +272,7 @@ namespace Framework.EF
             if (!IsCachable) return;
             await CacheDb.StringSetAsync(CacheKey, JsonSerializer.Serialize(await DbContext.Set<T>().ToListAsync(cancellationToken)), CacheTimeout);
         }
-        private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e)
-        {
-            await UpdateCacheIfCachableAsync(e.CancellationToken);
-        }
+        private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e) => await UpdateCacheIfCachableAsync(e.CancellationToken);
     }
     public class UpdateCacheEventArgs : EventArgs
     {

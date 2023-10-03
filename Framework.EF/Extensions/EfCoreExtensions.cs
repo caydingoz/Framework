@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 
 namespace Framework.EF.Extensions
 {
-    public static class RepositoryExtensions
+    public static class EfCoreExtensions
     {
         private static List<string> IncludedEntityProps = new();
         public static IQueryable<T> MultipleInclude<T>(this IQueryable<T> query, Expression<Func<T, object>>? include = null) where T : class

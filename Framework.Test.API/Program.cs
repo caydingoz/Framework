@@ -2,7 +2,6 @@ using Framework.Domain.Entities;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Shared.Entities;
-using MongoDB.Bson;
 
 var builder = WebApplication.CreateBuilder(args);
 

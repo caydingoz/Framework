@@ -11,6 +11,7 @@ using System.Linq.Expressions;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
+using Framework.MongoDB.Extensions;
 
 namespace Framework.MongoDB
 {
@@ -22,19 +23,19 @@ namespace Framework.MongoDB
         public MongoDbRepositoryBase(IServiceProvider provider)
         {
             SetDatabaseAndCollection(provider);
-            IsLogicalDelete = typeof(T).GetInterface(typeof(ILogicalDelete).FullName, true) != null;
-            IsCachable = typeof(T).GetInterface(typeof(ICachable).FullName, true) != null;
+            IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
+            IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
             if (IsCachable)
             {
-                CacheKey = (new T() as ICachable).GetCacheKey();
-                CacheTimeout = (new T() as ICachable).GetExpireTime();
+                CacheKey = ((ICachable)new T()).GetCacheKey();
+                CacheTimeout = ((ICachable)new T()).GetExpireTime();
             }
         }
 
         private static IDatabase CacheDb => RedisConnectorHelper.Db;
         protected bool IsLogicalDelete { get; }
         protected bool IsCachable { get; }
-        protected string CacheKey { get; }
+        protected string? CacheKey { get; }
         protected TimeSpan? CacheTimeout { get; }
 
         private void SetDatabaseAndCollection(IServiceProvider provider)
@@ -61,9 +62,9 @@ namespace Framework.MongoDB
                 return selector == null ? await Collection.AsQueryable().SingleOrDefaultAsync(cancellationToken) : await Collection.Find(selector).SingleOrDefaultAsync(cancellationToken: cancellationToken);
 
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-                return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
-            return null;
+            if (cachedData is null)
+                return null;
+            return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
         }
         public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
@@ -71,64 +72,29 @@ namespace Framework.MongoDB
                 return selector == null ? await Collection.AsQueryable().FirstOrDefaultAsync(cancellationToken) : await Collection.Find(selector).FirstOrDefaultAsync(cancellationToken: cancellationToken);
 
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-                return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
-            return null;
+            if (cachedData is null)
+                return null;
+            return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
         }
         public async Task<ICollection<T>> WhereAsync(Expression<Func<T, bool>> selector, bool includeLogicalDeleted = false, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
-            {
-                var query = Collection.Find(selector);
-                if (sorts is not null)
-                {
-                    var sortDoc = new BsonDocument();
-                    foreach (var sort in sorts)
-                        sortDoc.Add(new BsonElement(sort.Name, sort.Type == Shared.Enums.SortTypes.ASC ? 1 : -1));
-
-                    query.Sort(sortDoc);
-                }
-                if (pagination is not null)
-                {
-                    if (sorts is null)
-                        query.Sort(new BsonDocument { { "_id", 1 } });
-                    query = query.Skip(pagination.Page * pagination.Count).Limit(pagination.Count);
-                }
-
-                return await query.ToListAsync(cancellationToken: cancellationToken);
-            }
+                return await Collection.Find(selector).TSortBy(sorts).TPaginate(pagination, sorts).ToListAsync(cancellationToken: cancellationToken);
 
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
-            return Enumerable.Empty<T>().ToList();
+            if (cachedData is null)
+                return Enumerable.Empty<T>().ToList();
+            return cachedData.SortBy(sorts).Paginate(pagination).ToList();
         }
         public async Task<ICollection<T>> GetAllAsync(bool includeLogicalDeleted = false, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
-            {
-                var query = Collection.Find(x => true);
-                if (sorts is not null)
-                {
-                    var sortDoc = new BsonDocument();
-                    foreach (var sort in sorts)
-                        sortDoc.Add(new BsonElement(sort.Name, sort.Type == Shared.Enums.SortTypes.ASC ? 1 : -1));
-
-                    query.Sort(sortDoc);
-                }
-                if (pagination is not null)
-                {
-                    if (sorts is null)
-                        query.Sort(new BsonDocument { { "_id", 1 } });
-                    query = query.Skip(pagination.Page * pagination.Count).Limit(pagination.Count);
-                }
-                return await query.ToListAsync(cancellationToken: cancellationToken);
-            }
+                return await Collection.Find(x => true).TSortBy(sorts).TPaginate(pagination, sorts).ToListAsync(cancellationToken: cancellationToken);
 
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
-            return Enumerable.Empty<T>().ToList();
+            if (cachedData is null)
+                return Enumerable.Empty<T>().ToList();
+            return cachedData.SortBy(sorts).Paginate(pagination).ToList();
         }
         public async Task<long> CountAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
@@ -136,9 +102,9 @@ namespace Framework.MongoDB
                 return await Collection.CountDocumentsAsync(selector, cancellationToken: cancellationToken);
 
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-                return selector == null ? cachedData.Count() : cachedData.Count(selector);
-            return 0;
+            if (cachedData is null)
+                return 0;
+            return selector == null ? cachedData.Count() : cachedData.Count(selector);
         }
         public async Task<bool> AnyAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
@@ -146,9 +112,9 @@ namespace Framework.MongoDB
                 return selector == null ? await Collection.AsQueryable().AnyAsync(cancellationToken) : await Collection.CountDocumentsAsync(selector, cancellationToken: cancellationToken) > 0;
 
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is not null)
-                return selector == null ? cachedData.Any() : cachedData.Any(selector);
-            return false;
+            if (cachedData is null)
+                return false;
+            return selector == null ? cachedData.Any() : cachedData.Any(selector);
         }
         public async Task<T> InsertOneAsync(T entity, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
@@ -246,10 +212,7 @@ namespace Framework.MongoDB
             if (!IsCachable) return;
             await CacheDb.StringSetAsync(CacheKey, Collection.ToJson(), CacheTimeout);
         }
-        private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e)
-        {
-            await UpdateCacheIfCachableAsync();
-        }
+        private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e) => await UpdateCacheIfCachableAsync();
     }
     public class UpdateCacheEventArgs : EventArgs
     {

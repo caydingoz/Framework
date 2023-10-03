@@ -70,13 +70,13 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpGet("where")]
-        public async Task<IActionResult> WhereAsync(string msg, int page = 0, int count = 5)
+        public async Task<IActionResult> WhereAsync(string msg, int page = 0, int count = 5, SortTypes sort = SortTypes.ASC)
         {
             try
             {
                 var res = await MongoDbRepo.WhereAsync(x => x.Message == msg, false,
                     new Pagination { Count = count, Page = page },
-                    new List<Sort> { new Sort { Name = "_id", Type = SortTypes.DESC } });
+                    new List<Sort> { new Sort { Name = "_id", Type = sort } });
                 return Ok(res);
             }
             catch (Exception ex)
