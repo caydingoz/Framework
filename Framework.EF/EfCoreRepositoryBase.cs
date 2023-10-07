@@ -23,22 +23,22 @@ namespace Framework.EF
             IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
             IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
             if (IsCachable)
-            {
-                CacheKey = ((ICachable)new T()).GetCacheKey();
-                CacheTimeout = ((ICachable)new T()).GetExpireTime();
-            }
+                CacheKey = $"{typeof(T).GetType().FullName}";
         }
 
         private static IDatabase CacheDb => RedisConnectorHelper.Db;
         protected bool IsLogicalDelete { get; }
         protected bool IsCachable { get; }
         protected string? CacheKey { get; }
-        protected TimeSpan? CacheTimeout { get; }
 
         public async Task<T?> GetByIdAsync(U id, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
-           => await SingleOrDefaultAsync(x => x.Id.Equals(id), asNoTracking, includeLogicalDeleted, includes, cancellationToken);
+        {
+            if (id is null)
+                throw new Exception("Id is null!");
+            return await SingleOrDefaultAsync(x => x.Id.Equals(id), asNoTracking, includeLogicalDeleted, includes, cancellationToken);
+        }
 
-        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+    public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
@@ -196,6 +196,8 @@ namespace Framework.EF
         }
         public async Task DeleteOneAsync(U id, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
+            if (id is null)
+                throw new Exception("Id is null!");
             var entity = await DbContext.Set<T>().FindAsync(new object[] { id }, cancellationToken: cancellationToken) ?? throw new Exception("Not found an entity with given id!");
             
             if (IsLogicalDelete)
@@ -263,6 +265,8 @@ namespace Framework.EF
             if (json.IsNullOrEmpty)
                 return null;
             var data = JsonSerializer.Deserialize<IEnumerable<T>>(json);
+            if (data is null)
+                return null;
             if (IsLogicalDelete)
                 data = data.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
             return data.AsQueryable();
@@ -270,7 +274,7 @@ namespace Framework.EF
         private async Task UpdateCacheIfCachableAsync(CancellationToken cancellationToken = default)
         {
             if (!IsCachable) return;
-            await CacheDb.StringSetAsync(CacheKey, JsonSerializer.Serialize(await DbContext.Set<T>().ToListAsync(cancellationToken)), CacheTimeout);
+            await CacheDb.StringSetAsync(CacheKey, JsonSerializer.Serialize(await DbContext.Set<T>().ToListAsync(cancellationToken)));
         }
         private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e) => await UpdateCacheIfCachableAsync(e.CancellationToken);
     }

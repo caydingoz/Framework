@@ -23,28 +23,25 @@ namespace Framework.MongoDB
         public MongoDbRepositoryBase(IServiceProvider provider)
         {
             SetDatabaseAndCollection(provider);
-            if (Collection is null) throw new Exception("Collection null error!");
+            if (Collection is null) 
+                throw new Exception("Collection null error!");
             IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
             IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
             if (IsCachable)
-            {
-                CacheKey = ((ICachable)new T()).GetCacheKey();
-                CacheTimeout = ((ICachable)new T()).GetExpireTime();
-            }
+                CacheKey = $"{typeof(T).GetType().FullName}";
         }
 
         private static IDatabase CacheDb => RedisConnectorHelper.Db;
         protected bool IsLogicalDelete { get; }
         protected bool IsCachable { get; }
         protected string? CacheKey { get; }
-        protected TimeSpan? CacheTimeout { get; }
 
         private void SetDatabaseAndCollection(IServiceProvider provider)
         {
             try
             {
                 var configuration = provider.GetService<Configuration>() ?? throw new Exception("MongoDb credentials missing! (not injected)");
-                var mongoDbConfigs = configuration.MongoDb ?? throw new Exception("MongoDb credentials missing! (null)");
+                var mongoDbConfigs = configuration.MongoDb ?? throw new Exception("MongoDb credentials missing! (credentials null)");
                 var client = new MongoClient(mongoDbConfigs.ConnectionString);
                 Database = client.GetDatabase(mongoDbConfigs.Database);
                 Collection = Database.GetCollection<T>(typeof(T).Name.ToLowerInvariant());
@@ -56,7 +53,11 @@ namespace Framework.MongoDB
         }
 
         public async Task<T?> GetByIdAsync(U id, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
-           => await SingleOrDefaultAsync(x => x.Id.Equals(id), includeLogicalDeleted, cancellationToken);
+        {
+            if (id is null)
+                throw new Exception("Id is null!");
+            return await SingleOrDefaultAsync(x => x.Id.Equals(id), includeLogicalDeleted, cancellationToken);
+        }
 
         public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
@@ -204,15 +205,17 @@ namespace Framework.MongoDB
             var json = await CacheDb.StringGetAsync(CacheKey);
             if (json.IsNullOrEmpty)
                 return null;
-            var data = JsonSerializer.Deserialize<IQueryable<T>>(json);
+            var data = JsonSerializer.Deserialize<IEnumerable<T>>(json);
+            if (data is null)
+                return null;
             if (IsLogicalDelete)
-                data = data.WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
-            return data;
+                data = data.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
+            return data.AsQueryable();
         }
         private async Task UpdateCacheIfCachableAsync()
         {
             if (!IsCachable) return;
-            await CacheDb.StringSetAsync(CacheKey, Collection.ToJson(), CacheTimeout);
+            await CacheDb.StringSetAsync(CacheKey, Collection.ToJson());
         }
         private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e) => await UpdateCacheIfCachableAsync();
     }
