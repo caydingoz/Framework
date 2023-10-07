@@ -264,7 +264,9 @@ namespace Framework.EF
             var json = await CacheDb.StringGetAsync(CacheKey);
             if (json.IsNullOrEmpty)
                 return null;
+#pragma warning disable CS8604 // Possible null reference argument.
             var data = JsonSerializer.Deserialize<IEnumerable<T>>(json);
+#pragma warning restore CS8604 // Possible null reference argument.
             if (data is null)
                 return null;
             if (IsLogicalDelete)
