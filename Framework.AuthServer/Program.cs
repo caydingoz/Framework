@@ -14,56 +14,61 @@ using Framework.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-JWTConfiguration jwtConfiguration = new();
-EFConfiguration efConfiguration = new();
-MongoDbConfiguration mongoDbConfiguration = new();
-builder.Configuration.Bind("Configuration:JWT", jwtConfiguration);
-builder.Configuration.Bind("Configuration:EF", efConfiguration);
-builder.Configuration.Bind("Configuration:MongoDb", mongoDbConfiguration);
-
-var configuration = new Configuration { JWT = jwtConfiguration, EF = efConfiguration, MongoDb = mongoDbConfiguration };
+var configuration = new Configuration { JWT = new JWTConfiguration(), EF = new EFConfiguration(), MongoDb = new MongoDbConfiguration() };
+builder.Configuration.Bind("Configuration:JWT", configuration.JWT);
+builder.Configuration.Bind("Configuration:EF", configuration.EF);
+builder.Configuration.Bind("Configuration:MongoDb", configuration.MongoDb);
 
 builder.Services.AddSingleton(configuration); 
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddScoped<IGenericRepository<UserRefreshToken, int>, EfCoreRepositoryBase<UserRefreshToken, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
-builder.Services.AddAuthentication(options =>
+if(configuration.JWT is not null)
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(options =>
-{
-    options.SaveToken = true;
-    options.RequireHttpsMetadata = jwtConfiguration.RequireHttpsMetadata;
-    options.TokenValidationParameters = new TokenValidationParameters()
+    builder.Services.AddAuthentication(options =>
     {
-        ValidIssuer = jwtConfiguration.ValidIssuer,
-        ValidateAudience = jwtConfiguration.ValidateAudience,
-        ValidateLifetime = jwtConfiguration.ValidateLifetime,
-        ValidateIssuerSigningKey = jwtConfiguration.ValidateIssuerSigningKey,
-        ClockSkew = TimeSpan.Zero,
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    }).AddJwtBearer(options =>
+    {
+        options.SaveToken = true;
+        options.RequireHttpsMetadata = configuration.JWT.RequireHttpsMetadata;
+        options.TokenValidationParameters = new TokenValidationParameters()
+        {
+            ValidIssuer = configuration.JWT.ValidIssuer,
+            ValidateAudience = configuration.JWT.ValidateAudience,
+            ValidateLifetime = configuration.JWT.ValidateLifetime,
+            ValidateIssuerSigningKey = configuration.JWT.ValidateIssuerSigningKey,
+            ClockSkew = TimeSpan.Zero,
 
-        ValidAudience = jwtConfiguration.ValidAudience,
-        ValidateIssuer = jwtConfiguration.ValidateIssuer,
-        IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtConfiguration.Secret)),
-        RequireExpirationTime = jwtConfiguration.RequireExpirationTime,
-    };
-});
+            ValidAudience = configuration.JWT.ValidAudience,
+            ValidateIssuer = configuration.JWT.ValidateIssuer,
+            IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(configuration.JWT.Secret)),
+            RequireExpirationTime = configuration.JWT.RequireExpirationTime,
+        };
+    });
+}
+
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddDbContext<AuthServerDbContext>(
-    options => options.UseSqlServer(configuration.EF.ConnectionString), ServiceLifetime.Scoped);
 
-builder.Services.AddIdentity<User, IdentityRole>(options =>
+if (configuration.EF is not null)
 {
-    options.User.RequireUniqueEmail = true;
-})
-  .AddRoles<IdentityRole>()
-  .AddEntityFrameworkStores<AuthServerDbContext>()
-  .AddDefaultTokenProviders();
+    builder.Services.AddDbContext<AuthServerDbContext>(
+        options => options.UseSqlServer(configuration.EF.ConnectionString), ServiceLifetime.Scoped);
+
+    builder.Services.AddIdentity<User, IdentityRole>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+    })
+      .AddRoles<IdentityRole>()
+      .AddEntityFrameworkStores<AuthServerDbContext>()
+      .AddDefaultTokenProviders();
+}
+
 
 var app = builder.Build();
 
