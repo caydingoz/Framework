@@ -46,6 +46,9 @@ namespace Framework.AuthServer.Controllers
         [HttpPost("signin")]
         public async Task<ActionResult<TokenOutput>> SignInAsync(EmailSignInInput input)
         {
+            if (input is null)
+                return BadRequest("Invalid client request! (input null)");
+
             var user = await UserManager.FindByEmailAsync(input.Email);
 
             if (user is null)
@@ -60,14 +63,14 @@ namespace Framework.AuthServer.Controllers
 
             var oldTokens = await UserRefreshTokenRepository.WhereAsync(x => x.UserId == new Guid(user.Id));
 
-            if (oldTokens.Any())
+            if (oldTokens.Count != 0)
                 await UserRefreshTokenRepository.DeleteManyAsync(oldTokens.Select(x => x.Id));
 
             await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
             {
                 RefreshToken = newToken.RefreshToken,
                 AccessToken = newToken.AccessToken,
-                RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT.RefreshTokenValidityInDays),
+                RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
                 UserId = new Guid(user.Id)
             });
 
@@ -77,6 +80,9 @@ namespace Framework.AuthServer.Controllers
         [HttpPost("signup")]
         public async Task<ActionResult<TokenOutput>> SignUpAsync(EmailSignUpInput input)
         {
+            if (input is null)
+                return BadRequest("Invalid client request! (input null)");
+
             if ((await UserManager.FindByEmailAsync(input.Email)) is not null)
                 return BadRequest("Email already exist!");
 
@@ -92,9 +98,8 @@ namespace Framework.AuthServer.Controllers
 
             if (!result.Succeeded)
             {
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                throw new Exception(result.Errors.FirstOrDefault().Description);
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                var error = result.Errors.FirstOrDefault();
+                throw new Exception(error is not null ? error.Description : "Create user in usermanager failed!");
             }
 
             await SignInManager.SignInAsync(user, isPersistent: false);
@@ -105,7 +110,7 @@ namespace Framework.AuthServer.Controllers
             {
                 RefreshToken = token.RefreshToken,
                 AccessToken = token.AccessToken,
-                RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT.RefreshTokenValidityInDays),
+                RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
                 UserId = new Guid(user.Id)
             });
 
@@ -113,10 +118,10 @@ namespace Framework.AuthServer.Controllers
         }
         [HttpPost]
         [Route("refresh-token")]
-        public async Task<ActionResult<TokenOutput>> RefreshToken(RefreshTokenInput input)
+        public async Task<ActionResult<TokenOutput>> RefreshTokenAsync(RefreshTokenInput input)
         {
             if (input is null)
-                return BadRequest("Invalid client request");
+                return BadRequest("Invalid client request! (input null)");
 
             if (string.IsNullOrEmpty(input.AccessToken) || string.IsNullOrEmpty(input.RefreshToken))
                 return BadRequest("Invalid access token or refresh token");
@@ -146,7 +151,7 @@ namespace Framework.AuthServer.Controllers
             {
                 RefreshToken = newToken.RefreshToken,
                 AccessToken = newToken.AccessToken,
-                RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT.RefreshTokenValidityInDays),
+                RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
                 UserId = new Guid(userId)
             });
             await UserRefreshTokenRepository.DeleteOneAsync(oldToken.Id);
@@ -156,9 +161,7 @@ namespace Framework.AuthServer.Controllers
         private IUserEmailStore<User> GetEmailStore()
         {
             if (!UserManager.SupportsUserEmail)
-            {
                 throw new NotSupportedException("The default UI requires a user store with email support.");
-            }
             return (IUserEmailStore<User>)UserStore;
         }
     }
