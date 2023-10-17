@@ -1,7 +1,7 @@
 ﻿using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
 using Framework.Shared.Dtos.AuthServer;
-using Framework.Shared.Entities;
+using Framework.Shared.Entities.Configurations;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

@@ -2,7 +2,7 @@ using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Dtos.AuthServer;
-using Framework.Shared.Entities;
+using Framework.Shared.Entities.Configurations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;

@@ -1,4 +1,4 @@
-﻿namespace Framework.Shared.Entities
+﻿namespace Framework.Shared.Entities.Configurations
 {
     public class Configuration
     {

@@ -5,7 +5,7 @@ using Framework.AuthServer.Models;
 using Microsoft.AspNetCore.Identity;
 using Framework.AuthServer.Services;
 using Framework.AuthServer.Interfaces.Services;
-using Framework.Shared.Entities;
+using Framework.Shared.Entities.Configurations;
 using Framework.AuthServer;
 using Framework.EF;
 using Framework.Domain.Interfaces.Repositories;

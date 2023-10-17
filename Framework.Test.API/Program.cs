@@ -1,7 +1,7 @@
 using Framework.Domain.Entities;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
-using Framework.Shared.Entities;
+using Framework.Shared.Entities.Configurations;
 using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
