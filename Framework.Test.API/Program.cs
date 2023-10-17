@@ -2,12 +2,14 @@ using Framework.Domain.Entities;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Shared.Entities;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 MongoDbConfiguration mongoDbConfiguration = new();
 builder.Configuration.Bind("Configuration:MongoDb", mongoDbConfiguration);
 var configuration = new Configuration { MongoDb = mongoDbConfiguration };
+QuestPDF.Settings.License = LicenseType.Community;
 
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
