@@ -1,8 +1,12 @@
-﻿namespace Framework.Shared.Dtos.AuthServer
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace Framework.Shared.Dtos.AuthServer
 {
     public class RefreshTokenInput
     {
-        public string AccessToken { get; set; }
-        public string RefreshToken { get; set; }
+        [Required(ErrorMessage = "AccessToken is required")]
+        public required string AccessToken { get; set; }
+        [Required(ErrorMessage = "RefreshToken is required")]
+        public required string RefreshToken { get; set; }
     }
 }

@@ -123,9 +123,6 @@ namespace Framework.AuthServer.Controllers
             if (input is null)
                 return BadRequest("Invalid client request! (input null)");
 
-            if (string.IsNullOrEmpty(input.AccessToken) || string.IsNullOrEmpty(input.RefreshToken))
-                return BadRequest("Invalid access token or refresh token");
-
             var claims = TokenHandlerService.GetPrincipalFromExpiredToken(input.AccessToken);
             if (claims is null || !claims.Any())
                 return BadRequest("Invalid access token or refresh token");
