@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Framework.Application
 {
-    [ApiController]
     public class CRUDController<T,U> : BaseController where T : IBaseEntity<U> where U : struct
     {
         protected IGenericRepository<T,U> Repository { get; set; }
@@ -15,96 +14,68 @@ namespace Framework.Application
         }
 
         [HttpGet]
-        public async virtual Task<ActionResult<GeneralResponse<ICollection<T>>>> GetAllAsync()
+        public async virtual Task<GeneralResponse<ICollection<T>>> GetAllAsync()
         {
-            try
+            return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var res = await Repository.GetAllAsync();
-                return Ok(new GeneralResponse<ICollection<T>> { Data = res, LogId = Guid.Empty });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                return res;
+            });
         }
         [HttpGet("{id}")]
-        public async virtual Task<ActionResult<GeneralResponse<T>>> GetByIdAsync([FromRoute] U id)
+        public async virtual Task<GeneralResponse<T?>> GetByIdAsync([FromRoute] U id)
         {
-            try
+            return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var res = await Repository.GetByIdAsync(id);
-                return Ok(new GeneralResponse<T> { Data = res, LogId = Guid.Empty });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                return res;
+            });
         }
         [HttpPost]
-        public async virtual Task<IActionResult> InsertOneAsync(T entity)
+        public async virtual Task<GeneralResponse<object>>InsertOneAsync(T entity)
         {
-            try
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
                 SetIdToDefault(entity);
                 await Repository.InsertOneAsync(entity);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                return true;
+            });
         }
         [HttpPut]
-        public async virtual Task<IActionResult> UpdateOneAsync(T entity)
+        public async virtual Task<GeneralResponse<object>>UpdateOneAsync(T entity)
         {
-            try
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
                 await Repository.UpdateOneAsync(entity);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                return true;
+            });
         }
         [HttpPut("many")]
-        public async virtual Task<IActionResult> UpdateManyAsync(ICollection<T> entities)
+        public async virtual Task<GeneralResponse<object>>UpdateManyAsync(ICollection<T> entities)
         {
-            try
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
                 await Repository.UpdateManyAsync(entities);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                return true;
+            });
         }
         [HttpDelete("{id}")]
-        public async virtual Task<IActionResult> DeleteOneAsync([FromRoute] U id)
+        public async virtual Task<GeneralResponse<object>>DeleteOneAsync([FromRoute] U id)
         {
-            try
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
                 await Repository.DeleteOneAsync(id);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                return true;
+            });
         }
         [HttpDelete]
-        public async virtual Task<IActionResult> DeleteManyAsync([FromQuery] U[] ids)
+        public async virtual Task<GeneralResponse<object>>DeleteManyAsync([FromQuery] U[] ids)
         {
-            try
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
                 await Repository.DeleteManyAsync(ids);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+                return true;
+            });
         }
 
         private static void SetIdToDefault(T entity)

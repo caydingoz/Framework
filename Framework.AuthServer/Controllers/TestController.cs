@@ -5,8 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Framework.AuthServer.Controllers
 {
-    [ApiController]
-    [Route("api/test")]
+    [Route("api/[controller]")]
     public class TestController : CRUDController<UserRefreshToken, int>
     {
         public TestController(IGenericRepository<UserRefreshToken, int> repository) : base(repository)
