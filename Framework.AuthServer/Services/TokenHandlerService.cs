@@ -24,6 +24,8 @@ namespace Framework.AuthServer.Services
             (token, refreshToken) = GenerateAccessTokenAndRefreshToken(user);
             var tokenResult = new TokenOutput
             {
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 ExpiresIn = (long)token.ValidTo.Subtract(DateTime.UtcNow).TotalSeconds,
                 RefreshToken = refreshToken,
                 AccessToken = new JwtSecurityTokenHandler().WriteToken(token),

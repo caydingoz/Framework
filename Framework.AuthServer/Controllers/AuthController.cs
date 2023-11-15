@@ -5,8 +5,6 @@ using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Dtos;
 using Framework.Shared.Dtos.AuthServer;
 using Framework.Shared.Entities.Configurations;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -46,7 +44,6 @@ namespace Framework.AuthServer.Controllers
             EmailStore = GetEmailStore();
         }
         [HttpPost("signin")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<GeneralResponse<TokenOutput>> SignInAsync(EmailSignInInput input)
         {
             return await WithLoggingGeneralResponseAsync(async() =>
@@ -75,7 +72,7 @@ namespace Framework.AuthServer.Controllers
                 {
                     RefreshToken = newToken.RefreshToken,
                     AccessToken = newToken.AccessToken,
-                    RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
+                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
                     UserId = new Guid(user.Id)
                 });
 
@@ -97,9 +94,13 @@ namespace Framework.AuthServer.Controllers
                 var user = Activator.CreateInstance<User>();
 
                 user.Email = input.Email;
+                user.FirstName = input.FirstName;
+                user.LastName = input.LastName;
                 user.PhoneNumber = input.PhoneNumber;
 
-                await UserStore.SetUserNameAsync(user, input.Email, CancellationToken.None);
+                string userName = (input.FirstName + input.LastName).Trim();
+
+                await UserStore.SetUserNameAsync(user, userName, CancellationToken.None);
                 await EmailStore.SetEmailAsync(user, input.Email, CancellationToken.None);
 
                 var result = await UserManager.CreateAsync(user, input.Password);
@@ -107,7 +108,7 @@ namespace Framework.AuthServer.Controllers
                 if (!result.Succeeded)
                 {
                     var error = result.Errors.FirstOrDefault();
-                    throw new Exception(error is not null ? error.Description : "Create user in usermanager failed!");
+                    throw new Exception(error is not null ? error.Description : "Create user with usermanager failed!");
                 }
 
                 await SignInManager.SignInAsync(user, isPersistent: false);
@@ -118,15 +119,14 @@ namespace Framework.AuthServer.Controllers
                 {
                     RefreshToken = token.RefreshToken,
                     AccessToken = token.AccessToken,
-                    RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
+                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
                     UserId = new Guid(user.Id)
                 });
 
                 return token;
             });
         }
-        [HttpPost]
-        [Route("refresh-token")]
+        [HttpPost("refresh-token")]
         public async Task<GeneralResponse<TokenOutput>> RefreshTokenAsync(RefreshTokenInput input)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
@@ -150,7 +150,7 @@ namespace Framework.AuthServer.Controllers
 
                 var oldToken = await UserRefreshTokenRepository.SingleOrDefaultAsync(x => x.UserId == new Guid(userId) && x.RefreshToken == input.RefreshToken);
 
-                if (oldToken is null || oldToken.RefreshTokenExpiryTime <= DateTime.Now)
+                if (oldToken is null || oldToken.RefreshTokenExpiryTime <= DateTime.UtcNow)
                     throw new Exception("Invalid access token or refresh token");
 
                 var newToken = TokenHandlerService.CreateToken(user);
@@ -159,7 +159,7 @@ namespace Framework.AuthServer.Controllers
                 {
                     RefreshToken = newToken.RefreshToken,
                     AccessToken = newToken.AccessToken,
-                    RefreshTokenExpiryTime = DateTime.Now.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
+                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1), //TODO: Default Config
                     UserId = new Guid(userId)
                 });
                 await UserRefreshTokenRepository.DeleteOneAsync(oldToken.Id);

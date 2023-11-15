@@ -1,6 +1,4 @@
-﻿using Framework.Shared.Interfaces;
-
-namespace Framework.Shared.Dtos
+﻿namespace Framework.Shared.Dtos
 {
     public sealed class GeneralResponse<T>
     {

@@ -1,5 +1,6 @@
 ﻿using Framework.Shared.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Framework.Application
 {
@@ -30,6 +31,8 @@ namespace Framework.Application
                 return new GeneralResponse<T> { ErrorMessage = ex.Message, Success = false };
             }
         }
+        [NonAction]
+        protected string GetUserId() => User.FindFirstValue(ClaimTypes.Name) ?? throw new Exception("User Id couldn't get from claims!");
 
     }
 }
