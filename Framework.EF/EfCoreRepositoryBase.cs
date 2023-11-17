@@ -273,7 +273,7 @@ namespace Framework.EF
                 data = data.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
             return data.AsQueryable();
         }
-        private async Task UpdateCacheIfCachableAsync(CancellationToken cancellationToken = default)
+        private async Task UpdateCacheIfCachableAsync(CancellationToken cancellationToken = default) //TODO: fix with insert, update methods
         {
             if (!IsCachable) return;
             await CacheDb.StringSetAsync(CacheKey, JsonSerializer.Serialize(await DbContext.Set<T>().ToListAsync(cancellationToken)));

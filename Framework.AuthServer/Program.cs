@@ -11,6 +11,8 @@ using Framework.EF;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Domain.Entities;
+using Koctas.AuthenticationServer;
+using Microsoft.EntityFrameworkCore.Migrations.Internal;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,7 @@ builder.Configuration.Bind("Configuration:MongoDb", configuration.MongoDb);
 
 builder.Services.AddSingleton(configuration); 
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
+builder.Services.AddSingleton<DefaultDataMigration>();
 builder.Services.AddScoped<IGenericRepository<UserRefreshToken, int>, EfCoreRepositoryBase<UserRefreshToken, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
@@ -60,7 +63,6 @@ if (configuration.EF is not null)
 {
     builder.Services.AddDbContext<AuthServerDbContext>(
         options => options.UseSqlServer(configuration.EF.ConnectionString), ServiceLifetime.Scoped);
-
     builder.Services.AddIdentity<User, IdentityRole>(options =>
     {
         options.User.RequireUniqueEmail = true;
@@ -69,7 +71,22 @@ if (configuration.EF is not null)
       .AddEntityFrameworkStores<AuthServerDbContext>()
       .AddDefaultTokenProviders();
 }
-
+static void Migrate(IApplicationBuilder app)
+{
+    using var scope = app.ApplicationServices.CreateScope();
+    var serviceProvider = scope.ServiceProvider;
+    try
+    {
+        var migrator = new DefaultDataMigration(serviceProvider);
+        migrator.EnsureMigrationAsync().GetAwaiter().GetResult();
+    }
+    catch (Exception ex)
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the database.");
+        throw new Exception("An error occurred while migrating the database.");
+    }
+}
 
 var app = builder.Build();
 
@@ -89,5 +106,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+Migrate(app);
 
 app.Run();

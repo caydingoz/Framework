@@ -5,6 +5,8 @@ using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Dtos;
 using Framework.Shared.Dtos.AuthServer;
 using Framework.Shared.Entities.Configurations;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -172,6 +174,32 @@ namespace Framework.AuthServer.Controllers
             if (!UserManager.SupportsUserEmail)
                 throw new NotSupportedException("The default UI requires a user store with email support.");
             return (IUserEmailStore<User>)UserStore;
+        }
+
+        [HttpGet("roles")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<GeneralResponse<GetRolesOutput>> GetRolesAsync()
+        {
+            return await WithLoggingGeneralResponseAsync(async () =>
+            {
+                var userId = GetUserId();
+
+                var user = await UserManager.FindByIdAsync(userId);
+
+                if (user is null)
+                    throw new Exception("Not found a user with given id");
+
+                var roles = await UserManager.GetRolesAsync(user);
+
+                var res = new GetRolesOutput 
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Roles = roles
+                };
+
+                return res;
+            });
         }
     }
 }
