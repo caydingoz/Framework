@@ -79,7 +79,7 @@ namespace Framework.EF
             if (!IsCachable)
             {
                 var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
-                return await dbSet.AsQueryable().SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
+                return await dbSet.SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
             }
             var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
             if (cachedData is null)
