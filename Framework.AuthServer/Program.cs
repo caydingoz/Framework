@@ -12,7 +12,6 @@ using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Domain.Entities;
 using Koctas.AuthenticationServer;
-using Microsoft.EntityFrameworkCore.Migrations.Internal;
 
 var builder = WebApplication.CreateBuilder(args);
 
