@@ -134,8 +134,8 @@ namespace Framework.EF
         {
             foreach (var entity in entities)
             {
-                if (typeof(U) == typeof(Guid) && (entity.Id == null || entity.Id.ToString() == Guid.Empty.ToString()))
-                    entity.Id = (U)Convert.ChangeType(await new SequentialGuidValueGenerator().NextAsync(DbContext.Attach(entity), cancellationToken), typeof(U));
+                //if (typeof(U) == typeof(Guid) && (entity.Id == null || entity.Id.ToString() == Guid.Empty.ToString()))
+                //    entity.Id = (U)Convert.ChangeType(await new SequentialGuidValueGenerator().NextAsync(DbContext.Attach(entity), cancellationToken), typeof(U));
                 entity.SetUpdatedAndCreatedDate();
             }
 
