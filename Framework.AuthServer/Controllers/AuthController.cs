@@ -45,10 +45,10 @@ namespace Framework.AuthServer.Controllers
             UserRefreshTokenRepository = userRefreshTokenRepository;
             EmailStore = GetEmailStore();
         }
-        [HttpPost("signin")]
-        public async Task<GeneralResponse<TokenOutput>> SignInAsync(EmailSignInInput input)
+        [HttpPost("login")]
+        public async Task<GeneralResponse<LoginOutput>> LoginAsync(EmailLoginInput input)
         {
-            return await WithLoggingGeneralResponseAsync(async() =>
+            return await WithLoggingGeneralResponseAsync(async () =>
             {
                 if (input is null)
                     throw new Exception("Invalid client request! (input null)");
@@ -78,12 +78,20 @@ namespace Framework.AuthServer.Controllers
                     UserId = new Guid(user.Id)
                 });
 
-                return newToken;
+                var res = new LoginOutput
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Token = newToken,
+                    Roles = await UserManager.GetRolesAsync(user)
+                };
+
+                return res;
             });
         }
 
         [HttpPost("signup")]
-        public async Task<GeneralResponse<TokenOutput>> SignUpAsync(EmailSignUpInput input)
+        public async Task<GeneralResponse<RegisterOutput>> SignUpAsync(EmailRegisterInput input)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
@@ -125,7 +133,15 @@ namespace Framework.AuthServer.Controllers
                     UserId = new Guid(user.Id)
                 });
 
-                return token;
+                var res = new RegisterOutput
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Token = token,
+                    Roles = await UserManager.GetRolesAsync(user)
+                };
+
+                return res;
             });
         }
         [HttpPost("refresh-token")]
@@ -191,10 +207,8 @@ namespace Framework.AuthServer.Controllers
 
                 var roles = await UserManager.GetRolesAsync(user);
 
-                var res = new GetRolesOutput 
+                var res = new GetRolesOutput
                 {
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
                     Roles = roles
                 };
 

@@ -15,7 +15,7 @@ namespace Framework.Shared.Helpers
             {
                 try
                 {
-                    LazyConnection = ConnectionMultiplexer.Connect("127.0.0.1");
+                    LazyConnection = ConnectionMultiplexer.Connect("127.0.0.1:8001");
                 }
                 catch
                 {
