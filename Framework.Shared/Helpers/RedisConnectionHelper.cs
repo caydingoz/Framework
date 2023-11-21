@@ -1,21 +1,19 @@
-﻿using StackExchange.Redis;
+﻿using Framework.Shared.Entities.Configurations;
+using StackExchange.Redis;
 
 namespace Framework.Shared.Helpers
 {
-    public class RedisConnectorHelper
+    public static class RedisConnectorHelper
     {
-        static bool EventListenerCofigured = false;
         private static void SetupListener()
         {
-            if (!EventListenerCofigured)
-            {
-                EventListenerCofigured = true;
-            }
             if (LazyConnection == null)
             {
                 try
                 {
-                    LazyConnection = ConnectionMultiplexer.Connect("127.0.0.1:8001");
+                    if (Configuration.Redis is null)
+                        throw new Exception("Redis configuration null!");
+                    LazyConnection = ConnectionMultiplexer.Connect(Configuration.Redis.ConnectionString);
                 }
                 catch
                 {
@@ -23,10 +21,10 @@ namespace Framework.Shared.Helpers
                 }
             }
         }
+        
+        private static ConnectionMultiplexer? LazyConnection { get; set; } = null;
 
-        private static ConnectionMultiplexer LazyConnection { get; set; } = null;
-
-        public static ConnectionMultiplexer Connection
+        public static ConnectionMultiplexer? Connection
         {
             get
             {
@@ -36,5 +34,7 @@ namespace Framework.Shared.Helpers
         }
 
         public static IDatabase Db => Connection.GetDatabase();
+
+        public static Configuration Configuration { get; set; }
     }
 }

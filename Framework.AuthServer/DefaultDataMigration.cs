@@ -4,7 +4,7 @@ using Framework.Shared.Consts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-namespace Koctas.AuthenticationServer
+namespace Framework.AuthServer
 {
     internal class DefaultDataMigration
     {

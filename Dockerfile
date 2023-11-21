@@ -1,0 +1,22 @@
+# Stage 1: Build
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+ARG TARGETARCH
+
+COPY . /source
+WORKDIR /source/Framework.AuthServer
+
+RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+    dotnet publish -a ${TARGETARCH/amd64/x64} --use-current-runtime --self-contained false -o /app
+
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine AS final
+WORKDIR /app
+
+# Install ICU package
+RUN apk add --no-cache icu-libs
+
+# Copy the published application
+COPY --from=build /app .
+
+USER $APP_UID
+ENTRYPOINT ["dotnet", "Framework.AuthServer.dll"]

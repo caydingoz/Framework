@@ -11,16 +11,26 @@ using Framework.EF;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Domain.Entities;
-using Koctas.AuthenticationServer;
+using Framework.Shared.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var configuration = new Configuration { JWT = new JWTConfiguration(), EF = new EFConfiguration(), MongoDb = new MongoDbConfiguration() };
+var configuration = new Configuration 
+{ 
+    JWT = new JWTConfiguration(), 
+    EF = new EFConfiguration(), 
+    MongoDb = new MongoDbConfiguration(), 
+    Redis = new RedisConfiguration() 
+};
 builder.Configuration.Bind("Configuration:JWT", configuration.JWT);
 builder.Configuration.Bind("Configuration:EF", configuration.EF);
 builder.Configuration.Bind("Configuration:MongoDb", configuration.MongoDb);
+builder.Configuration.Bind("Configuration:Redis", configuration.Redis);
+RedisConnectorHelper.Configuration = configuration;
+Console.WriteLine(builder.Environment.EnvironmentName);
+Console.WriteLine(configuration.EF.ConnectionString);
 
-builder.Services.AddSingleton(configuration); 
+builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddSingleton<DefaultDataMigration>();
 builder.Services.AddScoped<IGenericRepository<UserRefreshToken, int>, EfCoreRepositoryBase<UserRefreshToken, AuthServerDbContext, int>>();
@@ -70,6 +80,7 @@ if (configuration.EF is not null)
       .AddEntityFrameworkStores<AuthServerDbContext>()
       .AddDefaultTokenProviders();
 }
+
 static void Migrate(IApplicationBuilder app)
 {
     using var scope = app.ApplicationServices.CreateScope();
@@ -83,7 +94,7 @@ static void Migrate(IApplicationBuilder app)
     {
         var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "An error occurred while migrating the database.");
-        throw new Exception("An error occurred while migrating the database.");
+        throw new Exception("An error occurred while migrating the database. Err: " + ex.Message);
     }
 }
 
