@@ -56,7 +56,7 @@ namespace Framework.AuthServer.Controllers
                 var user = await UserManager.FindByEmailAsync(input.Email);
 
                 if (user is null)
-                    throw new Exception("Not found a user with given email");
+                    throw new Exception("Not found a user with given email!");
 
                 var signInResult = await SignInManager.CheckPasswordSignInAsync(user, input.Password, false);
 
