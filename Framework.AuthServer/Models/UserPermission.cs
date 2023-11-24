@@ -11,6 +11,6 @@ namespace Framework.AuthServer.Models
         public required string RoleId { get; set; }
         [StringLength(100)]
         public required string Operation { get; set; }
-        public Permissions Permissions { get; set; }
+        public PermissionTypes Permissions { get; set; }
     }
 }

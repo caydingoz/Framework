@@ -17,11 +17,11 @@ namespace Framework.AuthServer.Services
         {
             Configuration = configuration;
         }
-        public TokenOutput CreateToken(User user)
+        public TokenOutput CreateToken(User user, ICollection<string> permissions)
         {
             JwtSecurityToken token;
             string refreshToken;
-            (token, refreshToken) = GenerateAccessTokenAndRefreshToken(user);
+            (token, refreshToken) = GenerateAccessTokenAndRefreshToken(user, permissions);
             var tokenResult = new TokenOutput
             {
                 ExpiresIn = (long)token.ValidTo.Subtract(DateTime.UtcNow).TotalSeconds,
@@ -31,13 +31,14 @@ namespace Framework.AuthServer.Services
             return tokenResult;
         }
 
-        private Tuple<JwtSecurityToken, string> GenerateAccessTokenAndRefreshToken(User user)
+        private Tuple<JwtSecurityToken, string> GenerateAccessTokenAndRefreshToken(User user, ICollection<string> permissions)
         {
             var authClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.Id),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
+                new Claim("permissions", string.Join(",", permissions)),
             };
 
             return new Tuple<JwtSecurityToken, string>(GenerateAccessToken(authClaims), GenerateRefreshToken());

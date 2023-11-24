@@ -1,7 +1,9 @@
 using Framework.Application;
+using Framework.AuthServer.Consts;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
+using Framework.Shared.Consts;
 using Framework.Shared.Dtos;
 using Framework.Shared.Dtos.AuthServer;
 using Framework.Shared.Entities.Configurations;
@@ -66,7 +68,13 @@ namespace Framework.AuthServer.Controllers
                 if (!signInResult.Succeeded)
                     throw new Exception("Password or email not match!");
 
-                var newToken = TokenHandlerService.CreateToken(user);
+                var permissions = (await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)).Permissions;
+                var permissionList = new List<string>();
+
+                foreach (var permission in permissions)
+                    permissionList.Add(permission.Key + ":" + permission.Value);
+
+                var newToken = TokenHandlerService.CreateToken(user, permissionList);
 
                 await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
 
@@ -121,10 +129,16 @@ namespace Framework.AuthServer.Controllers
                     throw new Exception(error is not null ? error.Description : "Create user with usermanager failed!");
                 }
 
-                var token = TokenHandlerService.CreateToken(user);
+                var permissions = (await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)).Permissions;
+                var permissionList = new List<string>();
+
+                foreach (var permission in permissions)
+                    permissionList.Add(permission.Key + ":" + permission.Value);
+
+                var token = TokenHandlerService.CreateToken(user, permissionList);
 
                 var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
-                
+
                 await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
                 {
                     RefreshToken = token.RefreshToken,
@@ -173,7 +187,13 @@ namespace Framework.AuthServer.Controllers
 
                 await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
 
-                var newToken = TokenHandlerService.CreateToken(user);
+                var permissions = (await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)).Permissions;
+                var permissionList = new List<string>();
+
+                foreach (var permission in permissions)
+                    permissionList.Add(permission.Key + ":" + permission.Value);
+
+                var newToken = TokenHandlerService.CreateToken(user, permissionList);
 
                 var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
 
@@ -197,6 +217,7 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet("roles-and-permissions")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        //[Authorize(Policy = PageNames.Role + PermissionAccessTypes.ReadAccess)]
         public async Task<GeneralResponse<GetRolesAndPermissionsOutput>> GetRolesAndPermissionsAsync()
         {
             return await WithLoggingGeneralResponseAsync(async () =>

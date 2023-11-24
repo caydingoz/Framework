@@ -7,13 +7,13 @@ using Framework.AuthServer.Services;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.Shared.Entities.Configurations;
 using Framework.AuthServer;
-using Framework.EF;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Domain.Entities;
 using Framework.Shared.Helpers;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Repositories;
+using Framework.AuthServer.Enums;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,8 +64,7 @@ if(configuration.JWT is not null)
         };
     });
 }
-
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(PermissionHelper.SetPolicies(Enum.GetNames(typeof(Pages))));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -91,7 +90,7 @@ static void Migrate(IApplicationBuilder app)
     try
     {
         var migrator = new DefaultDataMigration(serviceProvider);
-        migrator.EnsureMigrationAsync().GetAwaiter().GetResult();
+        migrator.EnsureMigrationAsync().Wait();
     }
     catch (Exception ex)
     {
