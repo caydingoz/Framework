@@ -1,5 +1,6 @@
 ﻿using Framework.Domain.Entites;
 using Framework.Domain.Interfaces.Entities;
+using Framework.Shared.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Framework.AuthServer.Models
@@ -10,6 +11,6 @@ namespace Framework.AuthServer.Models
         public required string RoleId { get; set; }
         [StringLength(100)]
         public required string Operation { get; set; }
-        public short Permissions { get; set; }
+        public Permissions Permissions { get; set; }
     }
 }

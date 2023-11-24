@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Framework.AuthServer.Models
 {
-    public class UserRefreshToken : Entity<int>, ICachable //TODO: remove icachable later
+    public class UserRefreshToken : Entity<int>
     {
         [StringLength(450)]
         public required string UserId { get; set; }

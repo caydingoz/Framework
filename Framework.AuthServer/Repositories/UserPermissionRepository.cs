@@ -25,7 +25,7 @@ namespace Framework.AuthServer.Repositories
                         {
                             role.Name,
                             Operation = perm != null ? perm.Operation : null,
-                            Permissions = perm != null ? perm.Permissions : (short)0
+                            Permissions = perm != null ? perm.Permissions : 0
                         };
 
             var data = await query.ToListAsync();

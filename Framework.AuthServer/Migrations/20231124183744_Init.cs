@@ -62,7 +62,7 @@ namespace Framework.AuthServer.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RoleId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Operation = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Permissions = table.Column<short>(type: "smallint", nullable: false),
+                    Permissions = table.Column<int>(type: "int", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },

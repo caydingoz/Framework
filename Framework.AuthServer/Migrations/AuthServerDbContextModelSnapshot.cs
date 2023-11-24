@@ -119,8 +119,8 @@ namespace Framework.AuthServer.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<short>("Permissions")
-                        .HasColumnType("smallint");
+                    b.Property<int>("Permissions")
+                        .HasColumnType("int");
 
                     b.Property<string>("RoleId")
                         .IsRequired()

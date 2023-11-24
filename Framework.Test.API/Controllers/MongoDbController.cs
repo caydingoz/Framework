@@ -3,7 +3,6 @@ using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Entities;
 using Framework.Shared.Enums;
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Bson;
 
 namespace Framework.Test.API.Controllers
 {

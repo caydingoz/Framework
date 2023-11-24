@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Framework.AuthServer.Migrations
 {
     [DbContext(typeof(AuthServerDbContext))]
-    [Migration("20231124171522_Init")]
+    [Migration("20231124183744_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -122,8 +122,8 @@ namespace Framework.AuthServer.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<short>("Permissions")
-                        .HasColumnType("smallint");
+                    b.Property<int>("Permissions")
+                        .HasColumnType("int");
 
                     b.Property<string>("RoleId")
                         .IsRequired()
