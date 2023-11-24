@@ -4,13 +4,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Framework.AuthServer.Models
 {
-    public class UserRefreshToken : Entity<int>, ICachable
+    public class UserRefreshToken : Entity<int>, ICachable //TODO: remove icachable later
     {
-        public Guid UserId { get; set; }
+        [StringLength(450)]
+        public required string UserId { get; set; }
         [StringLength(500)]
-        public string? RefreshToken { get; set; }
+        public required string RefreshToken { get; set; }
         [StringLength(1000)]
-        public string? AccessToken { get; set; }
+        public required string AccessToken { get; set; }
         public DateTime RefreshTokenExpiryTime { get; set; }
     }
 }

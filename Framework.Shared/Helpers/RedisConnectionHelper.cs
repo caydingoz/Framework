@@ -35,6 +35,6 @@ namespace Framework.Shared.Helpers
 
         public static IDatabase Db => Connection.GetDatabase();
 
-        public static Configuration Configuration { get; set; }
+        public static Configuration Configuration { private get; set; }
     }
 }

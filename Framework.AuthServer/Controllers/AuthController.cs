@@ -1,4 +1,5 @@
 using Framework.Application;
+using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
@@ -24,7 +25,8 @@ namespace Framework.AuthServer.Controllers
         private readonly IUserStore<User> UserStore;
         private readonly IUserEmailStore<User> EmailStore;
         private readonly ITokenHandlerService TokenHandlerService;
-        private readonly IGenericRepository<UserRefreshToken, int> UserRefreshTokenRepository;
+        private readonly IUserRefreshTokenRepository UserRefreshTokenRepository;
+        private readonly IUserPermissionRepository UserPermissionRepository;
 
         public AuthController(
             Configuration configuration,
@@ -33,7 +35,8 @@ namespace Framework.AuthServer.Controllers
             UserManager<User> userManager,
             IUserStore<User> userStore,
             ITokenHandlerService tokenHandlerService,
-            IGenericRepository<UserRefreshToken, int> userRefreshTokenRepository
+            IUserRefreshTokenRepository userRefreshTokenRepository,
+            IUserPermissionRepository userPermissionRepository
         )
         {
             Configuration = configuration;
@@ -43,6 +46,7 @@ namespace Framework.AuthServer.Controllers
             UserStore = userStore;
             TokenHandlerService = tokenHandlerService;
             UserRefreshTokenRepository = userRefreshTokenRepository;
+            UserPermissionRepository = userPermissionRepository;
             EmailStore = GetEmailStore();
         }
         [HttpPost("login")]
@@ -65,17 +69,14 @@ namespace Framework.AuthServer.Controllers
 
                 var newToken = TokenHandlerService.CreateToken(user);
 
-                var oldTokens = await UserRefreshTokenRepository.WhereAsync(x => x.UserId == new Guid(user.Id));
-
-                if (oldTokens.Count != 0)
-                    await UserRefreshTokenRepository.DeleteManyAsync(oldTokens.Select(x => x.Id));
+                await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
 
                 await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
                 {
                     RefreshToken = newToken.RefreshToken,
                     AccessToken = newToken.AccessToken,
                     RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
-                    UserId = new Guid(user.Id)
+                    UserId = user.Id
                 });
 
                 var res = new LoginOutput
@@ -83,7 +84,7 @@ namespace Framework.AuthServer.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Token = newToken,
-                    Roles = await UserManager.GetRolesAsync(user)
+                    RolesAndPermissions = await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)
                 };
 
                 return res;
@@ -130,7 +131,7 @@ namespace Framework.AuthServer.Controllers
                     RefreshToken = token.RefreshToken,
                     AccessToken = token.AccessToken,
                     RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
-                    UserId = new Guid(user.Id)
+                    UserId = user.Id
                 });
 
                 var res = new RegisterOutput
@@ -138,7 +139,7 @@ namespace Framework.AuthServer.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Token = token,
-                    Roles = await UserManager.GetRolesAsync(user)
+                    RolesAndPermissions = await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)
                 };
 
                 return res;
@@ -166,10 +167,12 @@ namespace Framework.AuthServer.Controllers
                 if (user is null)
                     throw new Exception("Invalid access token or refresh token");
 
-                var oldToken = await UserRefreshTokenRepository.SingleOrDefaultAsync(x => x.UserId == new Guid(userId) && x.RefreshToken == input.RefreshToken);
+                var isValid = await UserRefreshTokenRepository.AnyAsync(x => x.UserId == userId && x.RefreshToken == input.RefreshToken && x.RefreshTokenExpiryTime >= DateTime.UtcNow);
 
-                if (oldToken is null || oldToken.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                if (!isValid)
                     throw new Exception("Invalid access token or refresh token");
+
+                await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
 
                 var newToken = TokenHandlerService.CreateToken(user);
 
@@ -178,9 +181,8 @@ namespace Framework.AuthServer.Controllers
                     RefreshToken = newToken.RefreshToken,
                     AccessToken = newToken.AccessToken,
                     RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1), //TODO: Default Config
-                    UserId = new Guid(userId)
+                    UserId = user.Id
                 });
-                await UserRefreshTokenRepository.DeleteOneAsync(oldToken.Id);
 
                 return newToken;
             });
@@ -192,27 +194,15 @@ namespace Framework.AuthServer.Controllers
             return (IUserEmailStore<User>)UserStore;
         }
 
-        [HttpGet("roles")]
+        [HttpGet("roles-and-permissions")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<GeneralResponse<GetRolesOutput>> GetRolesAsync()
+        public async Task<GeneralResponse<GetRolesAndPermissionsOutput>> GetRolesAndPermissionsAsync()
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserId();
 
-                var user = await UserManager.FindByIdAsync(userId);
-
-                if (user is null)
-                    throw new Exception("Not found a user with given id");
-
-                var roles = await UserManager.GetRolesAsync(user);
-
-                var res = new GetRolesOutput
-                {
-                    Roles = roles
-                };
-
-                return res;
+                return await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(userId);
             });
         }
     }

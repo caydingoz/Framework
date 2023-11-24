@@ -12,6 +12,8 @@ using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Domain.Entities;
 using Framework.Shared.Helpers;
+using Framework.AuthServer.Interfaces.Repositories;
+using Framework.AuthServer.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,14 +28,15 @@ builder.Configuration.Bind("Configuration:JWT", configuration.JWT);
 builder.Configuration.Bind("Configuration:EF", configuration.EF);
 builder.Configuration.Bind("Configuration:MongoDb", configuration.MongoDb);
 builder.Configuration.Bind("Configuration:Redis", configuration.Redis);
-RedisConnectorHelper.Configuration = configuration;
-Console.WriteLine(builder.Environment.EnvironmentName);
-Console.WriteLine(configuration.EF.ConnectionString);
+
+RedisConnectorHelper.Configuration = configuration; //TODO: Look for a pattern
+Console.WriteLine("Environment: " + builder.Environment.EnvironmentName);
 
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddSingleton<DefaultDataMigration>();
-builder.Services.AddScoped<IGenericRepository<UserRefreshToken, int>, EfCoreRepositoryBase<UserRefreshToken, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IUserPermissionRepository, UserPermissionRepository>(); //TODO: MongoDb
+builder.Services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>(); //TODO: MongoDb
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
 if(configuration.JWT is not null)

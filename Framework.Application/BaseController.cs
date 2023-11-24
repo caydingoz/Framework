@@ -33,6 +33,8 @@ namespace Framework.Application
         }
         [NonAction]
         protected string GetUserId() => User.FindFirstValue(ClaimTypes.Name) ?? throw new Exception("User Id couldn't get from claims!");
+        [NonAction]
+        protected Guid GetUserIdGuid() => new(User.FindFirstValue(ClaimTypes.Name) ?? throw new Exception("User Id couldn't get from claims!"));
 
     }
 }

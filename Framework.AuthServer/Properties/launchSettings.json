@@ -7,14 +7,14 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "https://localhost:7118;http://localhost:5118"
+      "applicationUrl": "https://localhost:8081;http://localhost:8080"
     },
     "WSL": {
       "commandName": "WSL2",
-      "launchUrl": "https://localhost:7118/swagger",
+      "launchUrl": "https://localhost:8080/swagger",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "WSL",
-        "ASPNETCORE_URLS": "https://localhost:7118;http://localhost:5118"
+        "ASPNETCORE_URLS": "https://localhost:8081;http://localhost:8080"
       },
       "distributionName": ""
     },

@@ -14,7 +14,7 @@ using System.Text.Json;
 
 namespace Framework.EF
 {
-    public class EfCoreRepositoryBase<T, TDbContext, U> : IGenericRepository<T, U> where T : class, IBaseEntity<U>, new() where TDbContext : DbContext
+    public class EfCoreRepositoryBase<T, TDbContext, U> : IGenericRepository<T, U> where T : class, IBaseEntity<U> where TDbContext : DbContext
     {
         protected TDbContext DbContext { get; }
         public EfCoreRepositoryBase(TDbContext dbContext)
