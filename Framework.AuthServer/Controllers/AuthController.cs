@@ -2,7 +2,6 @@ using Framework.Application;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
-using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Dtos;
 using Framework.Shared.Dtos.AuthServer;
 using Framework.Shared.Entities.Configurations;
@@ -17,7 +16,7 @@ namespace Framework.AuthServer.Controllers
     [Route("api/[controller]")]
     public class AuthController : BaseController
     {
-        Configuration Configuration;
+        private readonly Configuration Configuration;
         private readonly ILogger<AuthController> Logger;
 
         private readonly SignInManager<User> SignInManager;
@@ -122,15 +121,15 @@ namespace Framework.AuthServer.Controllers
                     throw new Exception(error is not null ? error.Description : "Create user with usermanager failed!");
                 }
 
-                await SignInManager.SignInAsync(user, isPersistent: false);
-
                 var token = TokenHandlerService.CreateToken(user);
 
+                var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
+                
                 await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
                 {
                     RefreshToken = token.RefreshToken,
                     AccessToken = token.AccessToken,
-                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
+                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshTokenExpiryTime), //TODO: Default Config
                     UserId = user.Id
                 });
 
@@ -176,11 +175,13 @@ namespace Framework.AuthServer.Controllers
 
                 var newToken = TokenHandlerService.CreateToken(user);
 
+                var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
+
                 await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
                 {
                     RefreshToken = newToken.RefreshToken,
                     AccessToken = newToken.AccessToken,
-                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1), //TODO: Default Config
+                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshTokenExpiryTime), //TODO: Default Config
                     UserId = user.Id
                 });
 
