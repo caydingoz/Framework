@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Framework.Shared.Dtos.AuthServer
+namespace Framework.Shared.Dtos.AuthServer.UserService
 {
     public class RefreshTokenInput
     {

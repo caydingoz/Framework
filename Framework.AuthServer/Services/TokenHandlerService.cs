@@ -1,7 +1,8 @@
 ﻿using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
-using Framework.Shared.Dtos.AuthServer;
+using Framework.Shared.Dtos.AuthServer.UserService;
 using Framework.Shared.Entities.Configurations;
+using Framework.Shared.Enums;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -17,11 +18,16 @@ namespace Framework.AuthServer.Services
         {
             Configuration = configuration;
         }
-        public TokenOutput CreateToken(User user, ICollection<string> permissions)
+        public TokenOutput CreateToken(User user, Dictionary<string, PermissionTypes> permissions)
         {
+            var permissionList = new List<string>();
+
+            foreach (var permission in permissions)
+                permissionList.Add(permission.Key + ":" + permission.Value);
+
             JwtSecurityToken token;
             string refreshToken;
-            (token, refreshToken) = GenerateAccessTokenAndRefreshToken(user, permissions);
+            (token, refreshToken) = GenerateAccessTokenAndRefreshToken(user, permissionList);
             var tokenResult = new TokenOutput
             {
                 ExpiresIn = (long)token.ValidTo.Subtract(DateTime.UtcNow).TotalSeconds,

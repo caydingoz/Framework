@@ -1,11 +1,9 @@
 using Framework.Application;
-using Framework.AuthServer.Consts;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
-using Framework.Shared.Consts;
 using Framework.Shared.Dtos;
-using Framework.Shared.Dtos.AuthServer;
+using Framework.Shared.Dtos.AuthServer.UserService;
 using Framework.Shared.Entities.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -27,7 +25,7 @@ namespace Framework.AuthServer.Controllers
         private readonly IUserEmailStore<User> EmailStore;
         private readonly ITokenHandlerService TokenHandlerService;
         private readonly IUserRefreshTokenRepository UserRefreshTokenRepository;
-        private readonly IUserPermissionRepository UserPermissionRepository;
+        private readonly IRolePermissionRepository RolePermissionRepository;
 
         public AuthController(
             Configuration configuration,
@@ -37,7 +35,7 @@ namespace Framework.AuthServer.Controllers
             IUserStore<User> userStore,
             ITokenHandlerService tokenHandlerService,
             IUserRefreshTokenRepository userRefreshTokenRepository,
-            IUserPermissionRepository userPermissionRepository
+            IRolePermissionRepository rolePermissionRepository
         )
         {
             Configuration = configuration;
@@ -47,7 +45,7 @@ namespace Framework.AuthServer.Controllers
             UserStore = userStore;
             TokenHandlerService = tokenHandlerService;
             UserRefreshTokenRepository = userRefreshTokenRepository;
-            UserPermissionRepository = userPermissionRepository;
+            RolePermissionRepository = rolePermissionRepository;
             EmailStore = GetEmailStore();
         }
         [HttpPost("login")]
@@ -68,20 +66,16 @@ namespace Framework.AuthServer.Controllers
                 if (!signInResult.Succeeded)
                     throw new Exception("Password or email not match!");
 
-                var permissions = (await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)).Permissions;
-                var permissionList = new List<string>();
+                var permissionsAndRoles = await RolePermissionRepository.GetUserRolesAndPermissionsByUserIdAsync(user.Id);
 
-                foreach (var permission in permissions)
-                    permissionList.Add(permission.Key + ":" + permission.Value);
-
-                var newToken = TokenHandlerService.CreateToken(user, permissionList);
+                var token = TokenHandlerService.CreateToken(user, permissionsAndRoles.Permissions);
 
                 await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
 
                 await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
                 {
-                    RefreshToken = newToken.RefreshToken,
-                    AccessToken = newToken.AccessToken,
+                    RefreshToken = token.RefreshToken,
+                    AccessToken = token.AccessToken,
                     RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
                     UserId = user.Id
                 });
@@ -90,8 +84,8 @@ namespace Framework.AuthServer.Controllers
                 {
                     FirstName = user.FirstName,
                     LastName = user.LastName,
-                    Token = newToken,
-                    RolesAndPermissions = await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)
+                    Token = token,
+                    RolesAndPermissions = permissionsAndRoles
                 };
 
                 return res;
@@ -129,13 +123,9 @@ namespace Framework.AuthServer.Controllers
                     throw new Exception(error is not null ? error.Description : "Create user with usermanager failed!");
                 }
 
-                var permissions = (await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)).Permissions;
-                var permissionList = new List<string>();
-
-                foreach (var permission in permissions)
-                    permissionList.Add(permission.Key + ":" + permission.Value);
-
-                var token = TokenHandlerService.CreateToken(user, permissionList);
+                var permissionsAndRoles = await RolePermissionRepository.GetUserRolesAndPermissionsByUserIdAsync(user.Id);
+                
+                var token = TokenHandlerService.CreateToken(user, permissionsAndRoles.Permissions);
 
                 var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
 
@@ -152,7 +142,7 @@ namespace Framework.AuthServer.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Token = token,
-                    RolesAndPermissions = await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)
+                    RolesAndPermissions = permissionsAndRoles
                 };
 
                 return res;
@@ -187,25 +177,21 @@ namespace Framework.AuthServer.Controllers
 
                 await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
 
-                var permissions = (await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(user.Id)).Permissions;
-                var permissionList = new List<string>();
+                var permissionsAndRoles = await RolePermissionRepository.GetUserRolesAndPermissionsByUserIdAsync(user.Id);
 
-                foreach (var permission in permissions)
-                    permissionList.Add(permission.Key + ":" + permission.Value);
-
-                var newToken = TokenHandlerService.CreateToken(user, permissionList);
+                var token = TokenHandlerService.CreateToken(user, permissionsAndRoles.Permissions);
 
                 var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
 
                 await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
                 {
-                    RefreshToken = newToken.RefreshToken,
-                    AccessToken = newToken.AccessToken,
+                    RefreshToken = token.RefreshToken,
+                    AccessToken = token.AccessToken,
                     RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshTokenExpiryTime), //TODO: Default Config
                     UserId = user.Id
                 });
 
-                return newToken;
+                return token;
             });
         }
         private IUserEmailStore<User> GetEmailStore()
@@ -217,14 +203,13 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet("roles-and-permissions")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        //[Authorize(Policy = PageNames.Role + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetRolesAndPermissionsOutput>> GetRolesAndPermissionsAsync()
+        public async Task<GeneralResponse<GetUserRolesAndPermissionsOutput>> GetUserRolesAndPermissionsAsync()
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserId();
 
-                return await UserPermissionRepository.GetRolesAndPermissionsByUserIdAsync(userId);
+                return await RolePermissionRepository.GetUserRolesAndPermissionsByUserIdAsync(userId);
             });
         }
     }

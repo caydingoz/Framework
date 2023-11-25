@@ -7,7 +7,7 @@ namespace Framework.AuthServer
     public class AuthServerDbContext : IdentityDbContext<User>
     {
         public DbSet<UserRefreshToken> UserRefreshTokens => Set<UserRefreshToken>();
-        public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
+        public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
         public AuthServerDbContext(DbContextOptions options) : base(options)
         {
         }

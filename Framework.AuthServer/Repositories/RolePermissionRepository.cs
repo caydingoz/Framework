@@ -1,39 +1,39 @@
 ﻿using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Models;
 using Framework.EF;
-using Framework.Shared.Dtos.AuthServer;
+using Framework.Shared.Dtos.AuthServer.UserService;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 
 namespace Framework.AuthServer.Repositories
 {
-    public class UserPermissionRepository : EfCoreRepositoryBase<UserPermission, AuthServerDbContext, int>, IUserPermissionRepository
+    public class RolePermissionRepository : EfCoreRepositoryBase<RolePermission, AuthServerDbContext, int>, IRolePermissionRepository
     {
-        public UserPermissionRepository(AuthServerDbContext dbContext) : base(dbContext)
+        public RolePermissionRepository(AuthServerDbContext dbContext) : base(dbContext)
         {
         }
 
-        public async Task<GetRolesAndPermissionsOutput> GetRolesAndPermissionsByUserIdAsync(string userId)
+        public async Task<GetUserRolesAndPermissionsOutput> GetUserRolesAndPermissionsByUserIdAsync(string userId)
         {
             var query = from user in DbContext.Users
                         join userRole in DbContext.UserRoles on user.Id equals userRole.UserId
                         join role in DbContext.Roles on userRole.RoleId equals role.Id
-                        join permission in DbContext.UserPermissions on userRole.RoleId equals permission.RoleId into permGroup
+                        join permission in DbContext.RolePermissions on userRole.RoleId equals permission.RoleId into permGroup
                         from perm in permGroup.DefaultIfEmpty()
                         where user.Id == userId
                         select new
                         {
                             role.Name,
                             Operation = perm != null ? perm.Operation : null,
-                            Permissions = perm != null ? perm.Permissions : 0
+                            PermissionType = perm != null ? perm.PermissionType : 0
                         };
 
-            var data = await query.ToListAsync();
+            var data = await query.AsNoTracking().ToListAsync();
             
-            return new GetRolesAndPermissionsOutput
+            return new GetUserRolesAndPermissionsOutput
             {
                 Roles = data.DistinctBy(x => x.Name).Select(x => x.Name),
-                Permissions = data.Where(x => x.Operation != null).ToDictionary(x => x.Operation, x => x.Permissions)
+                Permissions = data.Where(x => x.Operation != null).ToDictionary(x => x.Operation, x => x.PermissionType)
             };
         }
     }

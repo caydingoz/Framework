@@ -198,7 +198,7 @@ namespace Framework.EF
         {
             if (id is null)
                 throw new Exception("Id is null!");
-            var entity = await DbContext.Set<T>().FindAsync(new object[] { id }, cancellationToken: cancellationToken) ?? throw new Exception("Not found an entity with given id!");
+            var entity = await DbContext.Set<T>().FindAsync(new object[] { id }, cancellationToken: cancellationToken) ?? throw new Exception("Not found a data with given id!");
             
             if (IsLogicalDelete)
             {

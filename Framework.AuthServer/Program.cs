@@ -35,7 +35,7 @@ Console.WriteLine("Environment: " + builder.Environment.EnvironmentName);
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddSingleton<DefaultDataMigration>();
-builder.Services.AddScoped<IUserPermissionRepository, UserPermissionRepository>(); //TODO: MongoDb
+builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>(); //TODO: MongoDb
 builder.Services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>(); //TODO: MongoDb
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
