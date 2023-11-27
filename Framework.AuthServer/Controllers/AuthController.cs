@@ -85,7 +85,8 @@ namespace Framework.AuthServer.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Token = token,
-                    RolesAndPermissions = permissionsAndRoles
+                    Roles = permissionsAndRoles.Roles,
+                    Permissions = permissionsAndRoles.Permissions
                 };
 
                 return res;
@@ -142,7 +143,8 @@ namespace Framework.AuthServer.Controllers
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Token = token,
-                    RolesAndPermissions = permissionsAndRoles
+                    Roles = permissionsAndRoles.Roles,
+                    Permissions = permissionsAndRoles.Permissions
                 };
 
                 return res;
