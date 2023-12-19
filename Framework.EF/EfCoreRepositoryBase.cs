@@ -31,60 +31,60 @@ namespace Framework.EF
         protected bool IsCachable { get; }
         protected string? CacheKey { get; }
 
-        public async Task<T?> GetByIdAsync(U id, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+        public async Task<T?> GetByIdAsync(U id, bool readOnly = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
             if (id is null)
                 throw new Exception("Id is null!");
-            return await SingleOrDefaultAsync(x => x.Id.Equals(id), asNoTracking, includeLogicalDeleted, includes, cancellationToken);
+            return await SingleOrDefaultAsync(x => x.Id.Equals(id), readOnly, includeLogicalDeleted, includes, cancellationToken);
         }
 
-        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool readOnly = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
-            if (!IsCachable)
+            if (IsCachable && readOnly)
             {
-                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
-                return selector == null ? await dbSet.SingleOrDefaultAsync(cancellationToken) : await dbSet.SingleOrDefaultAsync(selector, cancellationToken);
+                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                if (cachedData is null)
+                    return null;
+                return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
             }
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is null)
-                return null;
-            return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
+            var dbSet = GetDbSetWithFiltered(readOnly, includeLogicalDeleted, includes);
+            return selector == null ? await dbSet.SingleOrDefaultAsync(cancellationToken) : await dbSet.SingleOrDefaultAsync(selector, cancellationToken);
         }
-        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+        public async Task<T?> FirstOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool readOnly = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
-            if (!IsCachable)
+            if (IsCachable && readOnly)
             {
-                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
-                return selector == null ? await dbSet.FirstOrDefaultAsync(cancellationToken) : await dbSet.FirstOrDefaultAsync(selector, cancellationToken);
+                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                if (cachedData is null)
+                    return null;
+                return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
             }
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is null)
-                return null;
-            return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
+            var dbSet = GetDbSetWithFiltered(readOnly, includeLogicalDeleted, includes);
+            return selector == null ? await dbSet.FirstOrDefaultAsync(cancellationToken) : await dbSet.FirstOrDefaultAsync(selector, cancellationToken);
         }
-        public async Task<ICollection<T>> WhereAsync(Expression<Func<T, bool>> selector, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
+        public async Task<ICollection<T>> WhereAsync(Expression<Func<T, bool>> selector, bool readOnly = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
-            if (!IsCachable)
+            if (IsCachable && readOnly)
             {
-                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
-                return await dbSet.Where(selector).SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
+                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                if (cachedData is null)
+                    return Enumerable.Empty<T>().ToList();
+                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
             }
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is null)
-                return Enumerable.Empty<T>().ToList();
-            return cachedData.SortBy(sorts).Paginate(pagination).ToList();
+            var dbSet = GetDbSetWithFiltered(readOnly, includeLogicalDeleted, includes);
+            return await dbSet.Where(selector).SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
         }
-        public async Task<ICollection<T>> GetAllAsync(bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
+        public async Task<ICollection<T>> GetAllAsync(bool readOnly = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, Pagination? pagination = null, ICollection<Sort>? sorts = null, CancellationToken cancellationToken = default)
         {
-            if (!IsCachable)
+            if (IsCachable && readOnly)
             {
-                var dbSet = GetDbSetWithFiltered(asNoTracking, includeLogicalDeleted, includes);
-                return await dbSet.SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
+                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                if (cachedData is null)
+                    return Enumerable.Empty<T>().ToList();
+                return cachedData.SortBy(sorts).Paginate(pagination).ToList();
             }
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
-            if (cachedData is null)
-                return Enumerable.Empty<T>().ToList();
-            return cachedData.SortBy(sorts).Paginate(pagination).ToList();
+            var dbSet = GetDbSetWithFiltered(readOnly, includeLogicalDeleted, includes);
+            return await dbSet.SortBy(sorts).Paginate(pagination).ToListAsync(cancellationToken);
         }
         public async Task<long> CountAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
         {
