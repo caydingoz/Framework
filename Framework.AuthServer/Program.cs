@@ -35,7 +35,7 @@ Console.WriteLine("Environment: " + builder.Environment.EnvironmentName);
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddSingleton<DefaultDataMigration>();
-builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>(); //TODO: MongoDb
+builder.Services.AddScoped<IPermissionRepository, PermissionRepository>(); //TODO: MongoDb
 builder.Services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>(); //TODO: MongoDb
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
@@ -74,11 +74,11 @@ if (configuration.EF is not null)
 {
     builder.Services.AddDbContext<AuthServerDbContext>(
         options => options.UseSqlServer(configuration.EF.ConnectionString), ServiceLifetime.Scoped);
-    builder.Services.AddIdentity<User, IdentityRole>(options =>
+    builder.Services.AddIdentity<User, Role>(options =>
     {
         options.User.RequireUniqueEmail = true;
     })
-      .AddRoles<IdentityRole>()
+      .AddRoles<Role>()
       .AddEntityFrameworkStores<AuthServerDbContext>()
       .AddDefaultTokenProviders();
 }

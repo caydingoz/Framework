@@ -10,5 +10,7 @@ namespace Framework.Shared.Dtos.AuthServer.RoleService
     {
         public required string Id { get; set; }
         public required string Name { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

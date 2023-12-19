@@ -16,6 +16,8 @@ namespace Framework.AuthServer.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     ConcurrencyStamp = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -55,7 +57,7 @@ namespace Framework.AuthServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "UserRefreshTokens",
+                name: "RefreshTokens",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -69,7 +71,7 @@ namespace Framework.AuthServer.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_UserRefreshTokens", x => x.Id);
+                    table.PrimaryKey("PK_RefreshTokens", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -94,22 +96,22 @@ namespace Framework.AuthServer.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "RolePermissions",
+                name: "Permissions",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RoleId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
                     Operation = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    PermissionType = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RolePermissions", x => x.Id);
+                    table.PrimaryKey("PK_Permissions", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_RolePermissions_AspNetRoles_RoleId",
+                        name: "FK_Permissions_AspNetRoles_RoleId",
                         column: x => x.RoleId,
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
@@ -241,8 +243,8 @@ namespace Framework.AuthServer.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_RolePermissions_RoleId",
-                table: "RolePermissions",
+                name: "IX_Permissions_RoleId",
+                table: "Permissions",
                 column: "RoleId");
         }
 
@@ -265,10 +267,10 @@ namespace Framework.AuthServer.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "RolePermissions");
+                name: "Permissions");
 
             migrationBuilder.DropTable(
-                name: "UserRefreshTokens");
+                name: "RefreshTokens");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");

@@ -1,6 +1,9 @@
-﻿using Framework.AuthServer;
+﻿using Framework.AuthServer.Enums;
+using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Models;
 using Framework.Shared.Consts;
+using Framework.Shared.Enums;
+using Framework.Shared.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,10 +13,14 @@ namespace Framework.AuthServer
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly UserManager<User> UserManager;
+        private readonly RoleManager<Role> RoleManager;
+        private readonly IPermissionRepository RolePermissionRepository;
         public DefaultDataMigration(IServiceProvider serviceProvider)
         {
             _serviceProvider = serviceProvider;
             UserManager = serviceProvider.GetService<UserManager<User>>() ?? throw new Exception();
+            RoleManager = serviceProvider.GetService<RoleManager<Role>>() ?? throw new Exception();
+            RolePermissionRepository = serviceProvider.GetService<IPermissionRepository>() ?? throw new Exception();
 
         }
         public async Task EnsureMigrationAsync()
@@ -23,9 +30,9 @@ namespace Framework.AuthServer
                 var context = _serviceProvider.GetRequiredService<AuthServerDbContext>();
                 await context.Database.MigrateAsync();
 
-                await CreateDefaultRolesAsync(_serviceProvider);
-
-                await AddAdministratorAsync("administrator@gmail.com");
+                await CreateDefaultRolesAsync();
+            
+                await CreateDefaultUsersAsync();
             }
             catch (Exception)
             {
@@ -33,20 +40,23 @@ namespace Framework.AuthServer
             }
         }
 
-        private static async Task CreateDefaultRolesAsync(IServiceProvider provider)
+        private async Task CreateDefaultRolesAsync()
         {
-            await CreateRoleAsync(provider, Roles.ADMINISTRATOR_ROLE);
+            await CreateRoleAsync(Roles.ADMINISTRATOR_ROLE);
         }
 
-        private static async Task CreateRoleAsync(IServiceProvider provider, string role)
+        private async Task CreateDefaultUsersAsync()
         {
-            var manager = provider.GetRequiredService<RoleManager<IdentityRole>>();
+            await AddAdministratorAsync("administrator@gmail.com");
+        }
 
-            var roleExists = await manager.RoleExistsAsync(role);
+        private async Task CreateRoleAsync(string role)
+        {
+            var roleExists = await RoleManager.RoleExistsAsync(role);
             if (!roleExists)
             {
-                var newRole = new IdentityRole(role);
-                var result = await manager.CreateAsync(newRole);
+                var newRole = new Role { Id = Guid.NewGuid().ToString(), Name = role, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+                var result = await RoleManager.CreateAsync(newRole);
                 if (!result.Succeeded)
                     throw new Exception($"{role} role couldn't created!");
             }
@@ -60,18 +70,40 @@ namespace Framework.AuthServer
             {
                 var newAdmin = Activator.CreateInstance<User>();
 
-                newAdmin.UserName = Roles.ADMINISTRATOR_ROLE;
+                newAdmin.UserName = "Administrator";
                 newAdmin.Email = email;
-
-                var result = await UserManager.CreateAsync(newAdmin, "Pass123$"); //TODO: Default config
-                if (!result.Succeeded)
-                    throw new Exception("Administrator user couldn't created!");
+                try
+                {
+                    var result = await UserManager.CreateAsync(newAdmin, "Pass123$"); //TODO: Default config
+                    if (!result.Succeeded)
+                        throw new Exception("Administrator user couldn't created!");
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Administrator user couldn't created! Error: " + ex.Message);
+                }
 
                 admin = await UserManager.FindByEmailAsync(email);
             }
 
             if (admin is not null && !await UserManager.IsInRoleAsync(admin, Roles.ADMINISTRATOR_ROLE))
+            {
                 await UserManager.AddToRoleAsync(admin, Roles.ADMINISTRATOR_ROLE);
+
+                var role = await RoleManager.FindByNameAsync(Roles.ADMINISTRATOR_ROLE) ?? throw new Exception(Roles.ADMINISTRATOR_ROLE + " role not found!");
+
+                PermissionTypes permissionType = PermissionTypes.None;
+                permissionType = PermissionHelper.AddPermission(permissionType, PermissionTypes.Read);
+                permissionType = PermissionHelper.AddPermission(permissionType, PermissionTypes.Write);
+                permissionType = PermissionHelper.AddPermission(permissionType, PermissionTypes.Delete);
+
+                await RolePermissionRepository.InsertOneAsync(new Permission
+                {
+                    Operation = Pages.Role.ToString(),
+                    RoleId = role.Id,
+                    Type = permissionType,
+                });
+            }
         }
     }
 }

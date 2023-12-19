@@ -25,7 +25,7 @@ namespace Framework.AuthServer.Controllers
         private readonly IUserEmailStore<User> EmailStore;
         private readonly ITokenHandlerService TokenHandlerService;
         private readonly IUserRefreshTokenRepository UserRefreshTokenRepository;
-        private readonly IRolePermissionRepository RolePermissionRepository;
+        private readonly IPermissionRepository RolePermissionRepository;
 
         public AuthController(
             Configuration configuration,
@@ -35,7 +35,7 @@ namespace Framework.AuthServer.Controllers
             IUserStore<User> userStore,
             ITokenHandlerService tokenHandlerService,
             IUserRefreshTokenRepository userRefreshTokenRepository,
-            IRolePermissionRepository rolePermissionRepository
+            IPermissionRepository rolePermissionRepository
         )
         {
             Configuration = configuration;

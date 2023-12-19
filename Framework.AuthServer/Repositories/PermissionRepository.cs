@@ -7,9 +7,9 @@ using StackExchange.Redis;
 
 namespace Framework.AuthServer.Repositories
 {
-    public class RolePermissionRepository : EfCoreRepositoryBase<RolePermission, AuthServerDbContext, int>, IRolePermissionRepository
+    public class PermissionRepository : EfCoreRepositoryBase<Permission, AuthServerDbContext, int>, IPermissionRepository
     {
-        public RolePermissionRepository(AuthServerDbContext dbContext) : base(dbContext)
+        public PermissionRepository(AuthServerDbContext dbContext) : base(dbContext)
         {
         }
 
@@ -18,14 +18,14 @@ namespace Framework.AuthServer.Repositories
             var query = from user in DbContext.Users
                         join userRole in DbContext.UserRoles on user.Id equals userRole.UserId
                         join role in DbContext.Roles on userRole.RoleId equals role.Id
-                        join permission in DbContext.RolePermissions on userRole.RoleId equals permission.RoleId into permGroup
+                        join permission in DbContext.Permissions on userRole.RoleId equals permission.RoleId into permGroup
                         from perm in permGroup.DefaultIfEmpty()
                         where user.Id == userId
                         select new
                         {
                             role.Name,
                             Operation = perm != null ? perm.Operation : null,
-                            PermissionType = perm != null ? perm.PermissionType : 0
+                            PermissionType = perm != null ? perm.Type : 0
                         };
 
             var data = await query.AsNoTracking().ToListAsync();

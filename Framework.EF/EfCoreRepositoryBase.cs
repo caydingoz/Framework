@@ -38,7 +38,7 @@ namespace Framework.EF
             return await SingleOrDefaultAsync(x => x.Id.Equals(id), asNoTracking, includeLogicalDeleted, includes, cancellationToken);
         }
 
-    public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
+        public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
             if (!IsCachable)
             {
@@ -276,7 +276,8 @@ namespace Framework.EF
         private async Task UpdateCacheIfCachableAsync(CancellationToken cancellationToken = default) //TODO: fix with insert, update methods
         {
             if (!IsCachable) return;
-            await CacheDb.StringSetAsync(CacheKey, JsonSerializer.Serialize(await DbContext.Set<T>().ToListAsync(cancellationToken)));
+            var datas = await DbContext.Set<T>().ToListAsync(cancellationToken);
+            await CacheDb.StringSetAsync(CacheKey, JsonSerializer.Serialize(datas));
         }
         private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e) => await UpdateCacheIfCachableAsync(e.CancellationToken);
     }

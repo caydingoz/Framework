@@ -1,5 +1,4 @@
 ﻿using Framework.Domain.Entites;
-using Framework.Domain.Interfaces.Entities;
 using System.ComponentModel.DataAnnotations;
 
 namespace Framework.AuthServer.Models

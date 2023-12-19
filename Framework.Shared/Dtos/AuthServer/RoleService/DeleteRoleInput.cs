@@ -2,6 +2,6 @@
 {
     public class DeleteRoleInput
     {
-        public required string Id { get; set; }
+        public required ICollection<string> Ids { get; set; }
     }
 }

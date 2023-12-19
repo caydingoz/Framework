@@ -41,10 +41,10 @@ namespace Framework.AuthServer.Services
         {
             var authClaims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, user.Id),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
-                new Claim("permissions", string.Join(",", permissions)),
+                new(ClaimTypes.Name, user.Id),
+                new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new("permissions", string.Join(";", permissions)),
             };
 
             return new Tuple<JwtSecurityToken, string>(GenerateAccessToken(authClaims), GenerateRefreshToken());

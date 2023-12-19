@@ -11,6 +11,8 @@ namespace Framework.Shared.Dtos.AuthServer.RoleService
     {
         public required int Id { get; set; }
         public required string Operation { get; set; }
-        public PermissionTypes PermissionType { get; set; }
+        public PermissionTypes Type { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }
