@@ -1,8 +1,6 @@
-﻿using Framework.Shared.Enums;
-
-namespace Framework.Shared.Dtos.AuthServer.RoleService
+﻿namespace Framework.Shared.Dtos.AuthServer.RoleService
 {
-    public class GetRolesOutput
+    public class GetRolesOutput : PageOutput
     {
         public ICollection<RolesOutput> Roles { get; set; } = new List<RolesOutput>();
     }

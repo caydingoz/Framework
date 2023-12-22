@@ -53,6 +53,7 @@ namespace Framework.AuthServer.Controllers
                 foreach (var role in roles)
                     res.Roles.Add(new RolesOutput { Id = role.Id, Name = role.Name ?? string.Empty, CreatedAt = role.CreatedAt, UpdatedAt = role.UpdatedAt });
 
+                res.TotalCount = await RoleManager.Roles.CountAsync();
                 return res;
             });
         }
@@ -88,13 +89,14 @@ namespace Framework.AuthServer.Controllers
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var sort = new Sort { Name = column ?? "Id", Type = sortType };
-                var permissions = await PermissionRepository.WhereAsync(x => x.RoleId == roleId, asNoTracking: true, pagination: new Pagination { Page = page, Count = count }, sorts: new []{ sort });
+                var permissions = await PermissionRepository.WhereAsync(x => x.RoleId == roleId, readOnly: true, pagination: new Pagination { Page = page, Count = count }, sorts: new []{ sort });
 
                 var res = new GetPermissionsByRoleIdOutput { RoleId = roleId };
 
                 foreach (var permission in permissions)
                     res.Permissions.Add(new PermissionsOutput { Id = permission.Id, Operation = permission.Operation, Type = permission.Type, CreatedAt = permission.CreatedAt, UpdatedAt = permission.UpdatedAt });
 
+                res.TotalCount = await PermissionRepository.CountAsync(x => x.RoleId == roleId);
                 return res;
             });
         }
@@ -105,8 +107,8 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                if (await RoleManager.Roles.AnyAsync(x => x.Id == roleId))
-                    throw new Exception("Permission is not exist!");
+                if (!await RoleManager.Roles.AnyAsync(x => x.Id == roleId))
+                    throw new Exception("Role is not exist!");
 
                 if (await PermissionRepository.AnyAsync(x => x.RoleId == roleId && x.Operation == input.Operation))
                     throw new Exception("Permission is exist!");
@@ -125,11 +127,8 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                if(await RoleManager.Roles.AnyAsync(x => x.Id == roleId))
-                    throw new Exception("Permission is not exist!");
-
-                if (await PermissionRepository.AnyAsync(x => x.RoleId == roleId && x.Id == input.Id))
-                    throw new Exception("Permission is exist!");
+                if(!await RoleManager.Roles.AnyAsync(x => x.Id == roleId))
+                    throw new Exception("Role is not exist!");
 
                 var permission = await PermissionRepository.GetByIdAsync(input.Id) ?? throw new Exception("Permission is not exist!");
 
@@ -143,10 +142,13 @@ namespace Framework.AuthServer.Controllers
 
         [HttpDelete("{roleId}/permissions")]
         [Authorize(Policy = PageNames.Role + PermissionAccessTypes.DeleteAccess)]
-        public async Task<GeneralResponse<object>> DeletePermissionAsync(DeletePermissionByRoleIdInput input)
+        public async Task<GeneralResponse<object>> DeletePermissionAsync([FromRoute] string roleId, DeletePermissionByRoleIdInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
+                if (!await RoleManager.Roles.AnyAsync(x => x.Id == roleId))
+                    throw new Exception("Role is not exist!");
+
                 await PermissionRepository.DeleteOneAsync(input.Id);
 
                 return true;

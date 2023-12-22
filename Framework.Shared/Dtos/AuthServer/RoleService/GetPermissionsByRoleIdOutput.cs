@@ -2,7 +2,7 @@
 
 namespace Framework.Shared.Dtos.AuthServer.RoleService
 {
-    public class GetPermissionsByRoleIdOutput
+    public class GetPermissionsByRoleIdOutput : PageOutput
     {
         public required string RoleId { get; set; }
         public ICollection<PermissionsOutput> Permissions { get; set; } = new List<PermissionsOutput>();

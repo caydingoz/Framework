@@ -16,7 +16,7 @@ namespace Framework.Test
 			services.AddDbContext<TDbContext>(options =>
 			{
 				var connString = "DataSource=file::memory:?cache=shared";//"Data Source=:memory:";
-				options.UseSqlite((connString));
+				options.UseSqlite(connString);
 			}, ServiceLifetime.Singleton);
 			ServiceProvider = services.BuildServiceProvider();
 
