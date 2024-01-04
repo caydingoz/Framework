@@ -18,7 +18,7 @@ namespace Framework.Application
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
-                var res = await Repository.GetAllAsync();
+                var res = await Repository.GetAllAsync(true);
                 return res;
             });
         }
@@ -27,12 +27,12 @@ namespace Framework.Application
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
-                var res = await Repository.GetByIdAsync(id);
+                var res = await Repository.GetByIdAsync(id, true);
                 return res;
             });
         }
         [HttpPost]
-        public async virtual Task<GeneralResponse<object>>InsertOneAsync(T entity)
+        public async virtual Task<GeneralResponse<object>> InsertOneAsync(T entity)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
@@ -42,7 +42,7 @@ namespace Framework.Application
             });
         }
         [HttpPut]
-        public async virtual Task<GeneralResponse<object>>UpdateOneAsync(T entity)
+        public async virtual Task<GeneralResponse<object>> UpdateOneAsync(T entity)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
@@ -51,7 +51,7 @@ namespace Framework.Application
             });
         }
         [HttpPut("many")]
-        public async virtual Task<GeneralResponse<object>>UpdateManyAsync(ICollection<T> entities)
+        public async virtual Task<GeneralResponse<object>> UpdateManyAsync(ICollection<T> entities)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
@@ -60,7 +60,7 @@ namespace Framework.Application
             });
         }
         [HttpDelete("{id}")]
-        public async virtual Task<GeneralResponse<object>>DeleteOneAsync([FromRoute] U id)
+        public async virtual Task<GeneralResponse<object>> DeleteOneAsync([FromRoute] U id)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
@@ -69,7 +69,7 @@ namespace Framework.Application
             });
         }
         [HttpDelete]
-        public async virtual Task<GeneralResponse<object>>DeleteManyAsync([FromQuery] U[] ids)
+        public async virtual Task<GeneralResponse<object>> DeleteManyAsync([FromQuery] U[] ids)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {

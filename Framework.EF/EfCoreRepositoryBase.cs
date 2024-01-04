@@ -1,4 +1,5 @@
-﻿using Framework.Domain.Extensions;
+﻿using Framework.Domain.Entites;
+using Framework.Domain.Extensions;
 using Framework.Domain.Interfaces.Entities;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Domain.Interfaces.UnitOfWork;
@@ -9,8 +10,10 @@ using Framework.Shared.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ValueGeneration;
 using StackExchange.Redis;
+using System.Data;
 using System.Linq.Expressions;
 using System.Text.Json;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Framework.EF
 {
@@ -22,19 +25,20 @@ namespace Framework.EF
             DbContext = dbContext;
             IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
             IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
-            if (IsCachable)
-                CacheKey = $"{typeof(T).GetType().FullName}";
         }
 
         private static IDatabase CacheDb => RedisConnectorHelper.Db;
         protected bool IsLogicalDelete { get; }
         protected bool IsCachable { get; }
-        protected string? CacheKey { get; }
 
         public async Task<T?> GetByIdAsync(U id, bool readOnly = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
             if (id is null)
                 throw new Exception("Id is null!");
+
+            if (IsCachable && readOnly)
+                return await GetCacheByIdAsync(id);
+
             return await SingleOrDefaultAsync(x => x.Id.Equals(id), readOnly, includeLogicalDeleted, includes, cancellationToken);
         }
 
@@ -42,7 +46,7 @@ namespace Framework.EF
         {
             if (IsCachable && readOnly)
             {
-                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                var cachedData = await GetCacheAsync(includeLogicalDeleted);
                 if (cachedData is null)
                     return null;
                 return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
@@ -54,7 +58,7 @@ namespace Framework.EF
         {
             if (IsCachable && readOnly)
             {
-                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                var cachedData = await GetCacheAsync(includeLogicalDeleted);
                 if (cachedData is null)
                     return null;
                 return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
@@ -66,7 +70,7 @@ namespace Framework.EF
         {
             if (IsCachable && readOnly)
             {
-                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                var cachedData = await GetCacheAsync(includeLogicalDeleted);
                 if (cachedData is null)
                     return Enumerable.Empty<T>().ToList();
                 return cachedData.SortBy(sorts).Paginate(pagination).ToList();
@@ -78,7 +82,7 @@ namespace Framework.EF
         {
             if (IsCachable && readOnly)
             {
-                var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+                var cachedData = await GetCacheAsync(includeLogicalDeleted);
                 if (cachedData is null)
                     return Enumerable.Empty<T>().ToList();
                 return cachedData.SortBy(sorts).Paginate(pagination).ToList();
@@ -93,7 +97,7 @@ namespace Framework.EF
                 var dbSet = GetDbSetWithFiltered(includeLogicalDeleted);
                 return selector == null ? await dbSet.CountAsync(cancellationToken) : await dbSet.CountAsync(selector, cancellationToken);
             }
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return 0;
             return selector == null ? cachedData.Count() : cachedData.Count(selector);
@@ -105,7 +109,7 @@ namespace Framework.EF
                 var dbSet = GetDbSetWithFiltered(includeLogicalDeleted);
                 return selector == null ? await dbSet.AnyAsync(cancellationToken) : await dbSet.AnyAsync(selector, cancellationToken);
             }
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return false;
             return selector == null ? cachedData.Any() : cachedData.Any(selector);
@@ -120,12 +124,17 @@ namespace Framework.EF
 
             if (unitOfWork is not null)
             {
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = [entity]
+                    });
             }
             else
             {
                 await DbContext.SaveChangesAsync(cancellationToken);
-                await UpdateCacheIfCachableAsync(cancellationToken);
+                if (IsCachable)
+                    await UpsertCacheAsync([entity]);
             }
 
             return entity;
@@ -143,12 +152,17 @@ namespace Framework.EF
 
             if (unitOfWork is not null)
             {
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = entities
+                    });
             }
             else
             {
                 await DbContext.SaveChangesAsync(cancellationToken);
-                await UpdateCacheIfCachableAsync(cancellationToken);
+                if (IsCachable)
+                    await UpsertCacheAsync(entities);
             }
 
             return entities;
@@ -166,12 +180,17 @@ namespace Framework.EF
 
             if (unitOfWork is not null)
             {
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = [entity]
+                    });
             }
             else
             {
                 await DbContext.SaveChangesAsync(cancellationToken);
-                await UpdateCacheIfCachableAsync(cancellationToken);
+                if (IsCachable)
+                    await UpsertCacheAsync([entity]);
             }
         }
         public async Task UpdateManyAsync(IEnumerable<T> entities, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
@@ -186,12 +205,17 @@ namespace Framework.EF
 
             if (unitOfWork is not null)
             {
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = entities
+                    });
             }
             else
             {
                 await DbContext.SaveChangesAsync(cancellationToken);
-                await UpdateCacheIfCachableAsync(cancellationToken);
+                if (IsCachable)
+                    await UpsertCacheAsync(entities);
             }
         }
         public async Task DeleteOneAsync(U id, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
@@ -212,12 +236,17 @@ namespace Framework.EF
 
             if (unitOfWork is not null)
             {
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
+                    {
+                        Ids = [id]
+                    });
             }
             else
             {
                 await DbContext.SaveChangesAsync(cancellationToken);
-                await UpdateCacheIfCachableAsync(cancellationToken);
+                if (IsCachable)
+                    await DeleteCacheAsync([id]);
             }
         }
         public async Task DeleteManyAsync(IEnumerable<U> ids, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
@@ -236,12 +265,17 @@ namespace Framework.EF
 
             if (unitOfWork is not null)
             {
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
+                    {
+                        Ids = ids.ToArray()
+                    });
             }
             else
             {
                 await DbContext.SaveChangesAsync(cancellationToken);
-                await UpdateCacheIfCachableAsync(cancellationToken);
+                if (IsCachable)
+                    await DeleteCacheAsync(ids.ToArray());
             }
         }
         private IQueryable<T> GetDbSetWithFiltered(bool includeLogicalDeleted = false)
@@ -259,30 +293,66 @@ namespace Framework.EF
                 query = query.AsNoTracking();
             return query;
         }
-        private async Task<IQueryable<T>?> GetCachedDataAsync(bool includeLogicalDeleted)
+        private static async Task<T?> GetCacheByIdAsync(U Id)
         {
-            var json = await CacheDb.StringGetAsync(CacheKey);
-            if (json.IsNullOrEmpty)
+            RedisValue value = await CacheDb.StringGetAsync($"{typeof(T).FullName}:{Id}");
+            if (value.IsNullOrEmpty)
                 return null;
 #pragma warning disable CS8604 // Possible null reference argument.
-            var data = JsonSerializer.Deserialize<IEnumerable<T>>(json);
+            var data = JsonSerializer.Deserialize<T>(value);
 #pragma warning restore CS8604 // Possible null reference argument.
-            if (data is null)
-                return null;
-            if (IsLogicalDelete)
-                data = data.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
-            return data.AsQueryable();
+            return data;
         }
-        private async Task UpdateCacheIfCachableAsync(CancellationToken cancellationToken = default) //TODO: fix with insert, update methods
+        private async Task<IQueryable<T>?> GetCacheAsync(bool includeLogicalDeleted)
         {
-            if (!IsCachable) return;
-            var datas = await DbContext.Set<T>().ToListAsync(cancellationToken);
-            await CacheDb.StringSetAsync(CacheKey, JsonSerializer.Serialize(datas));
+            RedisKey[] matchingKeys = CacheDb.Multiplexer.GetServer(CacheDb.Multiplexer.GetEndPoints().First())
+                .Keys(pattern: $"{typeof(T).FullName}:*").ToArray();
+
+            RedisValue[] values = await CacheDb.StringGetAsync(matchingKeys);
+            List<T> dataList = [];
+
+            foreach (var value in values)
+            {
+                if (!value.IsNull)
+                {
+                    string jsonString = value.ToString();
+#pragma warning disable CS8600 // Possible null reference argument.
+                    T deserializedObject = JsonSerializer.Deserialize<T>(jsonString);
+#pragma warning restore CS8600 // Possible null reference argument.
+                    if(deserializedObject != null)
+                        dataList.Add(deserializedObject);
+                }
+            }
+            if (IsLogicalDelete)
+                return dataList.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
+            return dataList.AsQueryable();
         }
-        private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e) => await UpdateCacheIfCachableAsync(e.CancellationToken);
+        private static async Task UpsertCacheAsync(IEnumerable<T> entities)
+        {
+            var keyValuePairs = new List<KeyValuePair<RedisKey, RedisValue>>();
+
+            foreach (var entity in entities)
+                keyValuePairs.Add(new KeyValuePair<RedisKey, RedisValue>($"{typeof(T).FullName}:{entity.Id}", JsonSerializer.Serialize(entity)));
+
+            await CacheDb.StringSetAsync(keyValuePairs.ToArray());
+        }
+        private static async Task DeleteCacheAsync(U[] ids)
+        {
+            var keys = new List<RedisKey>();
+            foreach (var id in ids)
+                keys.Add($"{typeof(T).FullName}:{id}");
+
+            await CacheDb.KeyDeleteAsync(keys.ToArray());
+        }
+        private static async Task UpsertCacheAsync(object sender, UpsertCacheEventArgs<T> e) => await UpsertCacheAsync(e.Entities);
+        private static async Task DeleteCacheAsync(object sender, DeleteCacheEventArgs<U> e) => await DeleteCacheAsync(e.Ids);
     }
-    public class UpdateCacheEventArgs : EventArgs
+    public class UpsertCacheEventArgs<T> : EventArgs
     {
-        public CancellationToken CancellationToken { get; set; }
+        public required IEnumerable<T> Entities { get; set; }
+    }
+    public class DeleteCacheEventArgs<U> : EventArgs
+    {
+        public required U[] Ids { get; set; }
     }
 }
