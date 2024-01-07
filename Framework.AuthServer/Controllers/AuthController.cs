@@ -19,7 +19,6 @@ namespace Framework.AuthServer.Controllers
         private readonly Configuration Configuration;
         private readonly ILogger<AuthController> Logger;
 
-        private readonly SignInManager<User> SignInManager;
         private readonly UserManager<User> UserManager;
         private readonly IUserStore<User> UserStore;
         private readonly IUserEmailStore<User> EmailStore;
@@ -30,7 +29,6 @@ namespace Framework.AuthServer.Controllers
         public AuthController(
             Configuration configuration,
             ILogger<AuthController> logger,
-            SignInManager<User> signInManager,
             UserManager<User> userManager,
             IUserStore<User> userStore,
             ITokenHandlerService tokenHandlerService,
@@ -40,7 +38,6 @@ namespace Framework.AuthServer.Controllers
         {
             Configuration = configuration;
             Logger = logger;
-            SignInManager = signInManager;
             UserManager = userManager;
             UserStore = userStore;
             TokenHandlerService = tokenHandlerService;
@@ -61,9 +58,9 @@ namespace Framework.AuthServer.Controllers
                 if (user is null)
                     throw new Exception("Not found a user with given email!");
 
-                var signInResult = await SignInManager.CheckPasswordSignInAsync(user, input.Password, false);
+                var signInResult = await UserManager.CheckPasswordAsync(user, input.Password);
 
-                if (!signInResult.Succeeded)
+                if (!signInResult)
                     throw new Exception("Password or email not match!");
 
                 var permissionsAndRoles = await RolePermissionRepository.GetUserRolesAndPermissionsByUserIdAsync(user.Id);
