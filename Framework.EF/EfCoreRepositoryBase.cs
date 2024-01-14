@@ -18,6 +18,9 @@ namespace Framework.EF
 {
     public class EfCoreRepositoryBase<T, TDbContext, U> : IGenericRepository<T, U> where T : class, IBaseEntity<U> where TDbContext : DbContext
     {
+        private static IDatabase CacheDb => RedisConnectorHelper.Db;
+        private bool IsLogicalDelete { get; }
+        private bool IsCachable { get; }
         protected TDbContext DbContext { get; }
         public EfCoreRepositoryBase(TDbContext dbContext)
         {
@@ -25,10 +28,6 @@ namespace Framework.EF
             IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
             IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
         }
-
-        private static IDatabase CacheDb => RedisConnectorHelper.Db;
-        protected bool IsLogicalDelete { get; }
-        protected bool IsCachable { get; }
 
         public async Task<T?> GetByIdAsync(U id, bool readOnly = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null, CancellationToken cancellationToken = default)
         {
@@ -124,7 +123,7 @@ namespace Framework.EF
             if (unitOfWork is not null)
             {
                 if (IsCachable)
-                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
                     {
                         Entities = [entity]
                     });
@@ -152,7 +151,7 @@ namespace Framework.EF
             if (unitOfWork is not null)
             {
                 if (IsCachable)
-                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
                     {
                         Entities = entities
                     });
@@ -180,7 +179,7 @@ namespace Framework.EF
             if (unitOfWork is not null)
             {
                 if (IsCachable)
-                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
                     {
                         Entities = [entity]
                     });
@@ -205,7 +204,7 @@ namespace Framework.EF
             if (unitOfWork is not null)
             {
                 if (IsCachable)
-                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
                     {
                         Entities = entities
                     });
@@ -236,7 +235,7 @@ namespace Framework.EF
             if (unitOfWork is not null)
             {
                 if (IsCachable)
-                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
+                    unitOfWork.Committed += async (s, e) => await DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
                     {
                         Ids = [id]
                     });
@@ -265,7 +264,7 @@ namespace Framework.EF
             if (unitOfWork is not null)
             {
                 if (IsCachable)
-                    unitOfWork.Committed += async (s, e) => await EfCoreRepositoryBase<T, TDbContext, U>.DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
+                    unitOfWork.Committed += async (s, e) => await DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
                     {
                         Ids = ids.ToArray()
                     });
