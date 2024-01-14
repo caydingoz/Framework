@@ -1,5 +1,4 @@
-﻿using Framework.Domain.Entites;
-using Framework.Domain.Extensions;
+﻿using Framework.Domain.Extensions;
 using Framework.Domain.Interfaces.Entities;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Domain.Interfaces.UnitOfWork;

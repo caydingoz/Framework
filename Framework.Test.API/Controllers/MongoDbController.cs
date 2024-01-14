@@ -1,7 +1,7 @@
-using Framework.Domain.Entities;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Entities;
 using Framework.Shared.Enums;
+using Framework.Test.API.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Framework.Test.API.Controllers
@@ -10,8 +10,8 @@ namespace Framework.Test.API.Controllers
     [Route("mongo")]
     public class MongoDbController : ControllerBase
     {
-        IGenericRepositoryWithNonRelation<Log, string> MongoDbRepo { get; set; }
-        public MongoDbController(IGenericRepositoryWithNonRelation<Log, string> mongoRepo)
+        IGenericRepositoryWithNonRelation<NoSqlTestModel, string> MongoDbRepo { get; set; }
+        public MongoDbController(IGenericRepositoryWithNonRelation<NoSqlTestModel, string> mongoRepo)
         {
             MongoDbRepo = mongoRepo;
         }
@@ -47,7 +47,7 @@ namespace Framework.Test.API.Controllers
         {
             try
             {
-                var res = await MongoDbRepo.FirstOrDefaultAsync(x => x.Message == msg);
+                var res = await MongoDbRepo.FirstOrDefaultAsync(x => x.Name == msg);
                 return Ok(res);
             }
             catch (Exception ex)
@@ -60,7 +60,7 @@ namespace Framework.Test.API.Controllers
         {
             try
             {
-                var res = await MongoDbRepo.SingleOrDefaultAsync(x => x.Message == msg);
+                var res = await MongoDbRepo.SingleOrDefaultAsync(x => x.Name == msg);
                 return Ok(res);
             }
             catch (Exception ex)
@@ -73,7 +73,7 @@ namespace Framework.Test.API.Controllers
         {
             try
             {
-                var res = await MongoDbRepo.WhereAsync(x => x.Message == msg, false,
+                var res = await MongoDbRepo.WhereAsync(x => x.Name == msg, false,
                     new Pagination { Count = count, Page = page },
                     new List<Sort> { new Sort { Name = "_id", Type = sort } });
                 return Ok(res);
@@ -88,7 +88,7 @@ namespace Framework.Test.API.Controllers
         {
             try
             {
-                var res = await MongoDbRepo.AnyAsync(x => x.Message == msg);
+                var res = await MongoDbRepo.AnyAsync(x => x.Name == msg);
                 return Ok(res);
             }
             catch (Exception ex)
@@ -101,7 +101,7 @@ namespace Framework.Test.API.Controllers
         {
             try
             {
-                var res = await MongoDbRepo.CountAsync(x => x.Message == msg);
+                var res = await MongoDbRepo.CountAsync(x => x.Name == msg);
                 return Ok(res);
             }
             catch (Exception ex)
@@ -110,7 +110,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpPost]
-        public async Task<IActionResult> InsertOneAsync(Log entity)
+        public async Task<IActionResult> InsertOneAsync(NoSqlTestModel entity)
         {
             try
             {
@@ -123,7 +123,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpPost("many")]
-        public async Task<IActionResult> InsertManyAsync(Log[] entities)
+        public async Task<IActionResult> InsertManyAsync(NoSqlTestModel[] entities)
         {
             try
             {
@@ -136,7 +136,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpPut]
-        public async Task<IActionResult> UpdateOneAsync(Log entity)
+        public async Task<IActionResult> UpdateOneAsync(NoSqlTestModel entity)
         {
             try
             {
@@ -149,7 +149,7 @@ namespace Framework.Test.API.Controllers
             }
         }
         [HttpPut("many")]
-        public async Task<IActionResult> UpdateManyAsync(Log[] entities)
+        public async Task<IActionResult> UpdateManyAsync(NoSqlTestModel[] entities)
         {
             try
             {
