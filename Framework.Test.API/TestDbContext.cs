@@ -15,7 +15,7 @@ namespace Framework.Test.API
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<SqlTestModel>().HasMany(x => x.SqlTestRelationModels).WithMany(x => x.SqlTestModels);//.UsingEntity("RelationJoinTable");
+            builder.Entity<SqlTestModel>().HasMany(x => x.SqlTestRelationModels).WithMany(x => x.SqlTestModels).UsingEntity("RelationJoinTable");
             builder.Entity<CachableTestModel>().OwnsMany(x => x.Childs);
         }
     }

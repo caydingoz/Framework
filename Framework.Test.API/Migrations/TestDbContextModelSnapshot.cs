@@ -91,7 +91,7 @@ namespace Framework.Test.API.Migrations
                     b.ToTable("SqlTestRelationModels");
                 });
 
-            modelBuilder.Entity("SqlTestModelSqlTestRelationModel", b =>
+            modelBuilder.Entity("RelationJoinTable", b =>
                 {
                     b.Property<int>("SqlTestModelsId")
                         .HasColumnType("int");
@@ -103,7 +103,7 @@ namespace Framework.Test.API.Migrations
 
                     b.HasIndex("SqlTestRelationModelsId");
 
-                    b.ToTable("SqlTestModelSqlTestRelationModel");
+                    b.ToTable("RelationJoinTable");
                 });
 
             modelBuilder.Entity("Framework.Test.API.Models.CachableTestModel", b =>
@@ -134,7 +134,7 @@ namespace Framework.Test.API.Migrations
                     b.Navigation("Childs");
                 });
 
-            modelBuilder.Entity("SqlTestModelSqlTestRelationModel", b =>
+            modelBuilder.Entity("RelationJoinTable", b =>
                 {
                     b.HasOne("Framework.Test.API.Models.SqlTestModel", null)
                         .WithMany()

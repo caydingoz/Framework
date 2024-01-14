@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Framework.Test.API.Migrations
 {
     [DbContext(typeof(TestDbContext))]
-    [Migration("20240114185202_Init")]
+    [Migration("20240114192324_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -94,7 +94,7 @@ namespace Framework.Test.API.Migrations
                     b.ToTable("SqlTestRelationModels");
                 });
 
-            modelBuilder.Entity("SqlTestModelSqlTestRelationModel", b =>
+            modelBuilder.Entity("RelationJoinTable", b =>
                 {
                     b.Property<int>("SqlTestModelsId")
                         .HasColumnType("int");
@@ -106,7 +106,7 @@ namespace Framework.Test.API.Migrations
 
                     b.HasIndex("SqlTestRelationModelsId");
 
-                    b.ToTable("SqlTestModelSqlTestRelationModel");
+                    b.ToTable("RelationJoinTable");
                 });
 
             modelBuilder.Entity("Framework.Test.API.Models.CachableTestModel", b =>
@@ -137,7 +137,7 @@ namespace Framework.Test.API.Migrations
                     b.Navigation("Childs");
                 });
 
-            modelBuilder.Entity("SqlTestModelSqlTestRelationModel", b =>
+            modelBuilder.Entity("RelationJoinTable", b =>
                 {
                     b.HasOne("Framework.Test.API.Models.SqlTestModel", null)
                         .WithMany()

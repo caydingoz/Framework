@@ -77,7 +77,7 @@ namespace Framework.Test.API.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SqlTestModelSqlTestRelationModel",
+                name: "RelationJoinTable",
                 columns: table => new
                 {
                     SqlTestModelsId = table.Column<int>(type: "int", nullable: false),
@@ -85,15 +85,15 @@ namespace Framework.Test.API.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SqlTestModelSqlTestRelationModel", x => new { x.SqlTestModelsId, x.SqlTestRelationModelsId });
+                    table.PrimaryKey("PK_RelationJoinTable", x => new { x.SqlTestModelsId, x.SqlTestRelationModelsId });
                     table.ForeignKey(
-                        name: "FK_SqlTestModelSqlTestRelationModel_SqlTestModels_SqlTestModelsId",
+                        name: "FK_RelationJoinTable_SqlTestModels_SqlTestModelsId",
                         column: x => x.SqlTestModelsId,
                         principalTable: "SqlTestModels",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_SqlTestModelSqlTestRelationModel_SqlTestRelationModels_SqlTestRelationModelsId",
+                        name: "FK_RelationJoinTable_SqlTestRelationModels_SqlTestRelationModelsId",
                         column: x => x.SqlTestRelationModelsId,
                         principalTable: "SqlTestRelationModels",
                         principalColumn: "Id",
@@ -101,8 +101,8 @@ namespace Framework.Test.API.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_SqlTestModelSqlTestRelationModel_SqlTestRelationModelsId",
-                table: "SqlTestModelSqlTestRelationModel",
+                name: "IX_RelationJoinTable_SqlTestRelationModelsId",
+                table: "RelationJoinTable",
                 column: "SqlTestRelationModelsId");
         }
 
@@ -113,7 +113,7 @@ namespace Framework.Test.API.Migrations
                 name: "CachableTestChildModel");
 
             migrationBuilder.DropTable(
-                name: "SqlTestModelSqlTestRelationModel");
+                name: "RelationJoinTable");
 
             migrationBuilder.DropTable(
                 name: "CachableTestModels");
