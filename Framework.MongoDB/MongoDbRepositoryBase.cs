@@ -10,16 +10,18 @@ using StackExchange.Redis;
 using System.Linq.Expressions;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Bson;
 using Framework.MongoDB.Extensions;
 using Framework.Shared.Entities.Configurations;
 
 namespace Framework.MongoDB
 {
-    public class MongoDbRepositoryBase<T, U> : IGenericRepositoryWithNonRelation<T, U> where T : class, IBaseEntity<U>, new()
+    public class MongoDbRepositoryBase<T, U> : IGenericRepositoryWithNonRelation<T, U> where T : class, IBaseEntity<U>
     {
         private IMongoDatabase? Database;
         protected IMongoCollection<T> Collection;
+        private static IDatabase CacheDb => RedisConnectorHelper.Db;
+        protected bool IsLogicalDelete { get; }
+        protected bool IsCachable { get; }
 
         public MongoDbRepositoryBase(IServiceProvider provider)
         {
@@ -28,14 +30,7 @@ namespace Framework.MongoDB
                 throw new Exception("Collection null error!");
             IsLogicalDelete = InterfaceExistenceChecker.Check<T>(typeof(ILogicalDelete));
             IsCachable = InterfaceExistenceChecker.Check<T>(typeof(ICachable));
-            if (IsCachable)
-                CacheKey = $"{typeof(T).GetType().FullName}";
         }
-
-        private static IDatabase CacheDb => RedisConnectorHelper.Db;
-        protected bool IsLogicalDelete { get; }
-        protected bool IsCachable { get; }
-        protected string? CacheKey { get; }
 
         private void SetDatabaseAndCollection(IServiceProvider provider)
         {
@@ -57,7 +52,11 @@ namespace Framework.MongoDB
         {
             if (id is null)
                 throw new Exception("Id is null!");
-            return await SingleOrDefaultAsync(x => x.Id.Equals(id), includeLogicalDeleted, cancellationToken);
+
+            if (!IsCachable)
+                return await SingleOrDefaultAsync(x => x.Id.Equals(id), includeLogicalDeleted, cancellationToken);
+
+            return await GetCacheByIdAsync(id, includeLogicalDeleted);
         }
 
         public async Task<T?> SingleOrDefaultAsync(Expression<Func<T, bool>>? selector = null, bool includeLogicalDeleted = false, CancellationToken cancellationToken = default)
@@ -65,7 +64,7 @@ namespace Framework.MongoDB
             if (!IsCachable)
                 return selector == null ? await Collection.AsQueryable().SingleOrDefaultAsync(cancellationToken) : await Collection.Find(selector).SingleOrDefaultAsync(cancellationToken: cancellationToken);
 
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return null;
             return selector == null ? cachedData.SingleOrDefault() : cachedData.SingleOrDefault(selector);
@@ -75,7 +74,7 @@ namespace Framework.MongoDB
             if (!IsCachable)
                 return selector == null ? await Collection.AsQueryable().FirstOrDefaultAsync(cancellationToken) : await Collection.Find(selector).FirstOrDefaultAsync(cancellationToken: cancellationToken);
 
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return null;
             return selector == null ? cachedData.FirstOrDefault() : cachedData.FirstOrDefault(selector);
@@ -85,7 +84,7 @@ namespace Framework.MongoDB
             if (!IsCachable)
                 return await Collection.Find(selector).TSortBy(sorts).TPaginate(pagination, sorts).ToListAsync(cancellationToken: cancellationToken);
 
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return Enumerable.Empty<T>().ToList();
             return cachedData.SortBy(sorts).Paginate(pagination).ToList();
@@ -95,7 +94,7 @@ namespace Framework.MongoDB
             if (!IsCachable)
                 return await Collection.Find(x => true).TSortBy(sorts).TPaginate(pagination, sorts).ToListAsync(cancellationToken: cancellationToken);
 
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return Enumerable.Empty<T>().ToList();
             return cachedData.SortBy(sorts).Paginate(pagination).ToList();
@@ -105,7 +104,7 @@ namespace Framework.MongoDB
             if (!IsCachable)
                 return await Collection.CountDocumentsAsync(selector, cancellationToken: cancellationToken);
 
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return 0;
             return selector == null ? cachedData.Count() : cachedData.Count(selector);
@@ -115,7 +114,7 @@ namespace Framework.MongoDB
             if (!IsCachable)
                 return selector == null ? await Collection.AsQueryable().AnyAsync(cancellationToken) : await Collection.CountDocumentsAsync(selector, cancellationToken: cancellationToken) > 0;
 
-            var cachedData = await GetCachedDataAsync(includeLogicalDeleted);
+            var cachedData = await GetCacheAsync(includeLogicalDeleted);
             if (cachedData is null)
                 return false;
             return selector == null ? cachedData.Any() : cachedData.Any(selector);
@@ -128,9 +127,18 @@ namespace Framework.MongoDB
             await Collection.InsertOneAsync(entity, options, cancellationToken);
 
             if (unitOfWork is not null)
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+            {
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = [entity]
+                    });
+            }
             else
-                await UpdateCacheIfCachableAsync();
+            {
+                if (IsCachable)
+                    await UpsertCacheAsync([entity]);
+            }
 
             return entity;
         }
@@ -145,9 +153,19 @@ namespace Framework.MongoDB
             await Collection.InsertManyAsync(entities, options, cancellationToken);
 
             if (unitOfWork is not null)
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+            {
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = entities
+                    });
+            }
             else
-                await UpdateCacheIfCachableAsync();
+            {
+                if (IsCachable)
+                    await UpsertCacheAsync(entities);
+            }
+
 
             return entities;
         }
@@ -158,9 +176,18 @@ namespace Framework.MongoDB
             await Collection.FindOneAndReplaceAsync(x => x.Id.Equals(entity.Id), entity, cancellationToken: cancellationToken);
 
             if (unitOfWork is not null)
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+            {
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = [entity]
+                    });
+            }
             else
-                await UpdateCacheIfCachableAsync();
+            {
+                if (IsCachable)
+                    await UpsertCacheAsync([entity]);
+            }
         }
         public async Task UpdateManyAsync(IEnumerable<T> entities, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
@@ -171,9 +198,18 @@ namespace Framework.MongoDB
             }
 
             if (unitOfWork is not null)
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+            {
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await UpsertCacheAsync(s, new UpsertCacheEventArgs<T>
+                    {
+                        Entities = entities
+                    });
+            }
             else
-                await UpdateCacheIfCachableAsync();
+            {
+                if (IsCachable)
+                    await UpsertCacheAsync(entities);
+            }
         }
         public async Task DeleteOneAsync(U id, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
@@ -185,9 +221,18 @@ namespace Framework.MongoDB
                 await Collection.DeleteOneAsync(x => x.Id.Equals(id), cancellationToken: cancellationToken);
 
             if (unitOfWork is not null)
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+            {
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
+                    {
+                        Ids = [id]
+                    });
+            }
             else
-                await UpdateCacheIfCachableAsync();
+            {
+                if (IsCachable)
+                    await DeleteCacheAsync([id]);
+            }
         }
         public async Task DeleteManyAsync(IEnumerable<U> ids, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
@@ -197,33 +242,81 @@ namespace Framework.MongoDB
                 await Collection.DeleteManyAsync(x => ids.Contains(x.Id), cancellationToken: cancellationToken);
 
             if (unitOfWork is not null)
-                unitOfWork.Committed += async (s, e) => await UpdateCacheIfCachableAsync(s, new UpdateCacheEventArgs { CancellationToken = cancellationToken });
+            {
+                if (IsCachable)
+                    unitOfWork.Committed += async (s, e) => await DeleteCacheAsync(s, new DeleteCacheEventArgs<U>
+                    {
+                        Ids = ids.ToArray()
+                    });
+            }
             else
-                await UpdateCacheIfCachableAsync();
+            {
+                if (IsCachable)
+                    await DeleteCacheAsync(ids.ToArray());
+            }
         }
-        private async Task<IQueryable<T>?> GetCachedDataAsync(bool includeLogicalDeleted)
+        private async Task<T?> GetCacheByIdAsync(U Id, bool includeLogicalDeleted)
         {
-            var json = await CacheDb.StringGetAsync(CacheKey);
-            if (json.IsNullOrEmpty)
+            RedisValue value = await CacheDb.StringGetAsync($"{typeof(T).FullName}:{Id}");
+            if (value.IsNullOrEmpty)
                 return null;
 #pragma warning disable CS8604 // Possible null reference argument.
-            var data = JsonSerializer.Deserialize<IEnumerable<T>>(json);
+            var data = JsonSerializer.Deserialize<T>(value);
 #pragma warning restore CS8604 // Possible null reference argument.
-            if (data is null)
+            if (IsLogicalDelete && !includeLogicalDeleted && (data as ILogicalDelete).Deleted)
                 return null;
-            if (IsLogicalDelete)
-                data = data.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
-            return data.AsQueryable();
+            return data;
         }
-        private async Task UpdateCacheIfCachableAsync()
+        private async Task<IQueryable<T>?> GetCacheAsync(bool includeLogicalDeleted)
         {
-            if (!IsCachable) return;
-            await CacheDb.StringSetAsync(CacheKey, Collection.ToJson());
+            RedisKey[] matchingKeys = CacheDb.Multiplexer.GetServer(CacheDb.Multiplexer.GetEndPoints().First())
+                .Keys(pattern: $"{typeof(T).FullName}:*").ToArray();
+
+            RedisValue[] values = await CacheDb.StringGetAsync(matchingKeys);
+            List<T> dataList = [];
+
+            foreach (var value in values)
+            {
+                if (!value.IsNull)
+                {
+                    string jsonString = value.ToString();
+#pragma warning disable CS8600 // Possible null reference argument.
+                    T deserializedObject = JsonSerializer.Deserialize<T>(jsonString);
+#pragma warning restore CS8600 // Possible null reference argument.
+                    if (deserializedObject != null)
+                        dataList.Add(deserializedObject);
+                }
+            }
+            if (IsLogicalDelete)
+                return dataList.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
+            return dataList.AsQueryable();
         }
-        private async Task UpdateCacheIfCachableAsync(object sender, UpdateCacheEventArgs e) => await UpdateCacheIfCachableAsync();
+        private static async Task UpsertCacheAsync(IEnumerable<T> entities)
+        {
+            var keyValuePairs = new List<KeyValuePair<RedisKey, RedisValue>>();
+
+            foreach (var entity in entities)
+                keyValuePairs.Add(new KeyValuePair<RedisKey, RedisValue>($"{typeof(T).FullName}:{entity.Id}", JsonSerializer.Serialize(entity)));
+
+            await CacheDb.StringSetAsync(keyValuePairs.ToArray());
+        }
+        private static async Task DeleteCacheAsync(U[] ids)
+        {
+            var keys = new List<RedisKey>();
+            foreach (var id in ids)
+                keys.Add($"{typeof(T).FullName}:{id}");
+
+            await CacheDb.KeyDeleteAsync(keys.ToArray());
+        }
+        private static async Task UpsertCacheAsync(object sender, UpsertCacheEventArgs<T> e) => await UpsertCacheAsync(e.Entities);
+        private static async Task DeleteCacheAsync(object sender, DeleteCacheEventArgs<U> e) => await DeleteCacheAsync(e.Ids);
     }
-    public class UpdateCacheEventArgs : EventArgs
+    public class UpsertCacheEventArgs<T> : EventArgs
     {
-        public CancellationToken CancellationToken { get; set; }
+        public required IEnumerable<T> Entities { get; set; }
+    }
+    public class DeleteCacheEventArgs<U> : EventArgs
+    {
+        public required U[] Ids { get; set; }
     }
 }

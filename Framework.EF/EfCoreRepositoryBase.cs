@@ -35,7 +35,7 @@ namespace Framework.EF
                 throw new Exception("Id is null!");
 
             if (IsCachable && readOnly)
-                return await GetCacheByIdAsync(id);
+                return await GetCacheByIdAsync(id, includeLogicalDeleted);
 
             return await SingleOrDefaultAsync(x => x.Id.Equals(id), readOnly, includeLogicalDeleted, includes, cancellationToken);
         }
@@ -291,7 +291,7 @@ namespace Framework.EF
                 query = query.AsNoTracking();
             return query;
         }
-        private static async Task<T?> GetCacheByIdAsync(U Id)
+        private async Task<T?> GetCacheByIdAsync(U Id, bool includeLogicalDeleted)
         {
             RedisValue value = await CacheDb.StringGetAsync($"{typeof(T).FullName}:{Id}");
             if (value.IsNullOrEmpty)
@@ -299,6 +299,8 @@ namespace Framework.EF
 #pragma warning disable CS8604 // Possible null reference argument.
             var data = JsonSerializer.Deserialize<T>(value);
 #pragma warning restore CS8604 // Possible null reference argument.
+            if (IsLogicalDelete && !includeLogicalDeleted && (data as ILogicalDelete).Deleted)
+                return null;
             return data;
         }
         private async Task<IQueryable<T>?> GetCacheAsync(bool includeLogicalDeleted)
