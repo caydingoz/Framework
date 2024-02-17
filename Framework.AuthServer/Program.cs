@@ -14,6 +14,7 @@ using Framework.Shared.Helpers;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Repositories;
 using Framework.AuthServer.Enums;
+using Framework.EF.Interceptors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,8 +73,12 @@ builder.Services.AddCors(opt => opt.AddPolicy(name: "CorsPolicy", builder => bui
 
 if (configuration.EF is not null)
 {
-    builder.Services.AddDbContext<AuthServerDbContext>(
-        options => options.UseSqlServer(configuration.EF.ConnectionString), ServiceLifetime.Scoped);
+    builder.Services.AddDbContext<AuthServerDbContext>(options => 
+    {
+        options.UseSqlServer(configuration.EF.ConnectionString);
+        options.AddInterceptors(new SlowQueryInterceptor());
+    }, ServiceLifetime.Scoped);
+
     builder.Services.AddIdentity<User, Role>(options =>
     {
         options.User.RequireUniqueEmail = true;

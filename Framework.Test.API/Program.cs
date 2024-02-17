@@ -1,4 +1,5 @@
 using Framework.Domain.Interfaces.Repositories;
+using Framework.Domain.Interfaces.UnitOfWork;
 using Framework.EF;
 using Framework.MongoDB;
 using Framework.Shared.Entities.Configurations;
@@ -9,13 +10,13 @@ using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 var configuration = new Configuration
 {
     EF = new EFConfiguration(),
     MongoDb = new MongoDbConfiguration(),
     Redis = new RedisConfiguration()
 };
+
 builder.Configuration.Bind("Configuration:EF", configuration.EF);
 builder.Configuration.Bind("Configuration:MongoDb", configuration.MongoDb);
 builder.Configuration.Bind("Configuration:Redis", configuration.Redis);
@@ -26,6 +27,7 @@ builder.Services.AddScoped<IGenericRepositoryWithNonRelation<NoSqlTestModel, str
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<CachableTestModel, int>, MongoDbRepositoryBase<CachableTestModel, int>>();
 builder.Services.AddScoped<IGenericRepository<SqlTestModel, int>, EfCoreRepositoryBase<SqlTestModel, TestDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<CachableTestModel, int>, EfCoreRepositoryBase<CachableTestModel, TestDbContext, int>>();
+builder.Services.AddScoped<IUnitOfWork<TestDbContext>, UnitOfWork<TestDbContext>>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
