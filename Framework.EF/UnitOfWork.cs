@@ -24,7 +24,7 @@ namespace Framework.EF
             await DbContext.SaveChangesAsync(cancellationToken);
             await Transaction.DisposeAsync();
             Transaction = null;
-            if (Committed is not null && Committed.GetInvocationList().Any())
+            if (Committed is not null && Committed.GetInvocationList().Length != 0)
                 await Task.Run(() => Committed(this, EventArgs.Empty), cancellationToken);
         }
 
@@ -36,7 +36,7 @@ namespace Framework.EF
             DbContext.SaveChanges();
             Transaction.Dispose();
             Transaction = null;
-            if (Committed is not null && Committed.GetInvocationList().Any())
+            if (Committed is not null && Committed.GetInvocationList().Length != 0)
                 Committed(this, EventArgs.Empty);
         }
 
@@ -47,7 +47,7 @@ namespace Framework.EF
             await Transaction.RollbackAsync(cancellationToken);
             await Transaction.DisposeAsync();
             Transaction = null;
-            if (RollBacked is not null && RollBacked.GetInvocationList().Any())
+            if (RollBacked is not null && RollBacked.GetInvocationList().Length != 0)
                 await Task.Run(() => RollBacked(this, EventArgs.Empty), cancellationToken);
         }
 
@@ -58,7 +58,7 @@ namespace Framework.EF
             Transaction.Rollback();
             Transaction.Dispose();
             Transaction = null;
-            if (RollBacked is not null && RollBacked.GetInvocationList().Any())
+            if (RollBacked is not null && RollBacked.GetInvocationList().Length != 0)
                 RollBacked(this, EventArgs.Empty);
         }
 
