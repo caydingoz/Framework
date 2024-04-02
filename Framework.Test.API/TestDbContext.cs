@@ -5,8 +5,9 @@ namespace Framework.Test.API
 {
     public class TestDbContext : DbContext
     {
-        public DbSet<SqlTestModel> SqlTestModels => Set<SqlTestModel>();
-        public DbSet<SqlTestRelationModel> SqlTestRelationModels => Set<SqlTestRelationModel>();
+        public DbSet<SqlWithManyTestModel> SqlTestModels => Set<SqlWithManyTestModel>();
+        public DbSet<SqlWithManyTestRelationModel> SqlWithManyTestRelationModels => Set<SqlWithManyTestRelationModel>();
+        public DbSet<SqlWithOneTestRelationModel> SqlWithOneTestRelationModels => Set<SqlWithOneTestRelationModel>();
         public DbSet<CachableTestModel> CachableTestModels => Set<CachableTestModel>();
         public TestDbContext(DbContextOptions options) : base(options)
         {
@@ -15,7 +16,8 @@ namespace Framework.Test.API
         {
             base.OnModelCreating(builder);
 
-            builder.Entity<SqlTestModel>().HasMany(x => x.SqlTestRelationModels).WithMany(x => x.SqlTestModels).UsingEntity("RelationJoinTable");
+            builder.Entity<SqlWithManyTestModel>().HasMany(x => x.SqlWithManyTestRelationModels).WithMany(x => x.SqlWithManyTestModels).UsingEntity("RelationJoinTable");
+            builder.Entity<SqlWithOneTestModel>().HasMany(x => x.SqlWithOneTestRelationModels).WithOne(x => x.SqlWithOneTestModel);
             builder.Entity<CachableTestModel>().OwnsMany(x => x.Childs);
         }
     }

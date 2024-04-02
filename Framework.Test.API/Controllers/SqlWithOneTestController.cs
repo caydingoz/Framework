@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 namespace Framework.AuthServer.Controllers
 {
     [Route("api/[controller]")]
-    public class SqlTestController : CRUDController<SqlTestModel, int>
+    public class SqlWithOneTestController : CRUDController<SqlWithOneTestModel, int>
     {
-        public SqlTestController(IGenericRepository<SqlTestModel, int> repository) : base(repository)
+        public SqlWithOneTestController(IGenericRepository<SqlWithOneTestModel, int> repository) : base(repository)
         {
         }
 
@@ -18,8 +18,9 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                var x = await Repository.FirstOrDefaultAsync(includes: x => x.SqlTestRelationModels);
-                return x.SqlTestRelationModels is not null;
+                var x = await Repository.WhereAsync(x => 1 == 1, includes: x => x.SqlWithOneTestRelationModels);
+                return true;
+                //return x.SqlWithManyTestRelationModels is not null;
             });
         }
         [HttpPost("not-included")]
@@ -28,7 +29,7 @@ namespace Framework.AuthServer.Controllers
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
                 var x = await Repository.FirstOrDefaultAsync();
-                return x.SqlTestRelationModels is null;
+                return x.SqlWithOneTestRelationModels is null;
             });
         }
     }

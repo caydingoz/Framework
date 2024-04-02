@@ -25,7 +25,8 @@ QuestPDF.Settings.License = LicenseType.Community;
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<NoSqlTestModel, string>, MongoDbRepositoryBase<NoSqlTestModel, string>>();
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<CachableTestModel, int>, MongoDbRepositoryBase<CachableTestModel, int>>();
-builder.Services.AddScoped<IGenericRepository<SqlTestModel, int>, EfCoreRepositoryBase<SqlTestModel, TestDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<SqlWithManyTestModel, int>, EfCoreRepositoryBase<SqlWithManyTestModel, TestDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<SqlWithOneTestModel, int>, EfCoreRepositoryBase<SqlWithOneTestModel, TestDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<CachableTestModel, int>, EfCoreRepositoryBase<CachableTestModel, TestDbContext, int>>();
 builder.Services.AddScoped<IUnitOfWork<TestDbContext>, UnitOfWork<TestDbContext>>();
 

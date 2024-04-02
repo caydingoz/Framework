@@ -42,7 +42,7 @@ namespace Framework.Test.API.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SqlTestRelationModels",
+                name: "SqlWithManyTestRelationModels",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -53,7 +53,22 @@ namespace Framework.Test.API.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SqlTestRelationModels", x => x.Id);
+                    table.PrimaryKey("PK_SqlWithManyTestRelationModels", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SqlWithOneTestModel",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SqlWithOneTestModel", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -80,30 +95,57 @@ namespace Framework.Test.API.Migrations
                 name: "RelationJoinTable",
                 columns: table => new
                 {
-                    SqlTestModelsId = table.Column<int>(type: "int", nullable: false),
-                    SqlTestRelationModelsId = table.Column<int>(type: "int", nullable: false)
+                    SqlWithManyTestModelsId = table.Column<int>(type: "int", nullable: false),
+                    SqlWithManyTestRelationModelsId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_RelationJoinTable", x => new { x.SqlTestModelsId, x.SqlTestRelationModelsId });
+                    table.PrimaryKey("PK_RelationJoinTable", x => new { x.SqlWithManyTestModelsId, x.SqlWithManyTestRelationModelsId });
                     table.ForeignKey(
-                        name: "FK_RelationJoinTable_SqlTestModels_SqlTestModelsId",
-                        column: x => x.SqlTestModelsId,
+                        name: "FK_RelationJoinTable_SqlTestModels_SqlWithManyTestModelsId",
+                        column: x => x.SqlWithManyTestModelsId,
                         principalTable: "SqlTestModels",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_RelationJoinTable_SqlTestRelationModels_SqlTestRelationModelsId",
-                        column: x => x.SqlTestRelationModelsId,
-                        principalTable: "SqlTestRelationModels",
+                        name: "FK_RelationJoinTable_SqlWithManyTestRelationModels_SqlWithManyTestRelationModelsId",
+                        column: x => x.SqlWithManyTestRelationModelsId,
+                        principalTable: "SqlWithManyTestRelationModels",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SqlWithOneTestRelationModels",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SqlWithOneTestModelId = table.Column<int>(type: "int", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SqlWithOneTestRelationModels", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_SqlWithOneTestRelationModels_SqlWithOneTestModel_SqlWithOneTestModelId",
+                        column: x => x.SqlWithOneTestModelId,
+                        principalTable: "SqlWithOneTestModel",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_RelationJoinTable_SqlTestRelationModelsId",
+                name: "IX_RelationJoinTable_SqlWithManyTestRelationModelsId",
                 table: "RelationJoinTable",
-                column: "SqlTestRelationModelsId");
+                column: "SqlWithManyTestRelationModelsId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SqlWithOneTestRelationModels_SqlWithOneTestModelId",
+                table: "SqlWithOneTestRelationModels",
+                column: "SqlWithOneTestModelId");
         }
 
         /// <inheritdoc />
@@ -116,13 +158,19 @@ namespace Framework.Test.API.Migrations
                 name: "RelationJoinTable");
 
             migrationBuilder.DropTable(
+                name: "SqlWithOneTestRelationModels");
+
+            migrationBuilder.DropTable(
                 name: "CachableTestModels");
 
             migrationBuilder.DropTable(
                 name: "SqlTestModels");
 
             migrationBuilder.DropTable(
-                name: "SqlTestRelationModels");
+                name: "SqlWithManyTestRelationModels");
+
+            migrationBuilder.DropTable(
+                name: "SqlWithOneTestModel");
         }
     }
 }

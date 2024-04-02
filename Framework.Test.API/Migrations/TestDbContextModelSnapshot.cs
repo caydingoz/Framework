@@ -17,7 +17,7 @@ namespace Framework.Test.API.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.1")
+                .HasAnnotation("ProductVersion", "8.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -45,7 +45,7 @@ namespace Framework.Test.API.Migrations
                     b.ToTable("CachableTestModels");
                 });
 
-            modelBuilder.Entity("Framework.Test.API.Models.SqlTestModel", b =>
+            modelBuilder.Entity("Framework.Test.API.Models.SqlWithManyTestModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -68,7 +68,7 @@ namespace Framework.Test.API.Migrations
                     b.ToTable("SqlTestModels");
                 });
 
-            modelBuilder.Entity("Framework.Test.API.Models.SqlTestRelationModel", b =>
+            modelBuilder.Entity("Framework.Test.API.Models.SqlWithManyTestRelationModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -88,20 +88,71 @@ namespace Framework.Test.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SqlTestRelationModels");
+                    b.ToTable("SqlWithManyTestRelationModels");
+                });
+
+            modelBuilder.Entity("Framework.Test.API.Models.SqlWithOneTestModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SqlWithOneTestModel");
+                });
+
+            modelBuilder.Entity("Framework.Test.API.Models.SqlWithOneTestRelationModel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SqlWithOneTestModelId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SqlWithOneTestModelId");
+
+                    b.ToTable("SqlWithOneTestRelationModels");
                 });
 
             modelBuilder.Entity("RelationJoinTable", b =>
                 {
-                    b.Property<int>("SqlTestModelsId")
+                    b.Property<int>("SqlWithManyTestModelsId")
                         .HasColumnType("int");
 
-                    b.Property<int>("SqlTestRelationModelsId")
+                    b.Property<int>("SqlWithManyTestRelationModelsId")
                         .HasColumnType("int");
 
-                    b.HasKey("SqlTestModelsId", "SqlTestRelationModelsId");
+                    b.HasKey("SqlWithManyTestModelsId", "SqlWithManyTestRelationModelsId");
 
-                    b.HasIndex("SqlTestRelationModelsId");
+                    b.HasIndex("SqlWithManyTestRelationModelsId");
 
                     b.ToTable("RelationJoinTable");
                 });
@@ -134,19 +185,35 @@ namespace Framework.Test.API.Migrations
                     b.Navigation("Childs");
                 });
 
-            modelBuilder.Entity("RelationJoinTable", b =>
+            modelBuilder.Entity("Framework.Test.API.Models.SqlWithOneTestRelationModel", b =>
                 {
-                    b.HasOne("Framework.Test.API.Models.SqlTestModel", null)
-                        .WithMany()
-                        .HasForeignKey("SqlTestModelsId")
+                    b.HasOne("Framework.Test.API.Models.SqlWithOneTestModel", "SqlWithOneTestModel")
+                        .WithMany("SqlWithOneTestRelationModels")
+                        .HasForeignKey("SqlWithOneTestModelId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Framework.Test.API.Models.SqlTestRelationModel", null)
+                    b.Navigation("SqlWithOneTestModel");
+                });
+
+            modelBuilder.Entity("RelationJoinTable", b =>
+                {
+                    b.HasOne("Framework.Test.API.Models.SqlWithManyTestModel", null)
                         .WithMany()
-                        .HasForeignKey("SqlTestRelationModelsId")
+                        .HasForeignKey("SqlWithManyTestModelsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("Framework.Test.API.Models.SqlWithManyTestRelationModel", null)
+                        .WithMany()
+                        .HasForeignKey("SqlWithManyTestRelationModelsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Framework.Test.API.Models.SqlWithOneTestModel", b =>
+                {
+                    b.Navigation("SqlWithOneTestRelationModels");
                 });
 #pragma warning restore 612, 618
         }
