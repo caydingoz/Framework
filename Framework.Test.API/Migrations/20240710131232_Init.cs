@@ -57,7 +57,7 @@ namespace Framework.Test.API.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SqlWithOneTestModel",
+                name: "SqlWithOneTestModels",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -68,7 +68,7 @@ namespace Framework.Test.API.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_SqlWithOneTestModel", x => x.Id);
+                    table.PrimaryKey("PK_SqlWithOneTestModels", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -130,9 +130,9 @@ namespace Framework.Test.API.Migrations
                 {
                     table.PrimaryKey("PK_SqlWithOneTestRelationModels", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_SqlWithOneTestRelationModels_SqlWithOneTestModel_SqlWithOneTestModelId",
+                        name: "FK_SqlWithOneTestRelationModels_SqlWithOneTestModels_SqlWithOneTestModelId",
                         column: x => x.SqlWithOneTestModelId,
-                        principalTable: "SqlWithOneTestModel",
+                        principalTable: "SqlWithOneTestModels",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -170,7 +170,7 @@ namespace Framework.Test.API.Migrations
                 name: "SqlWithManyTestRelationModels");
 
             migrationBuilder.DropTable(
-                name: "SqlWithOneTestModel");
+                name: "SqlWithOneTestModels");
         }
     }
 }

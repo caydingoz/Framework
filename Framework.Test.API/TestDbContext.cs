@@ -7,6 +7,7 @@ namespace Framework.Test.API
     {
         public DbSet<SqlWithManyTestModel> SqlTestModels => Set<SqlWithManyTestModel>();
         public DbSet<SqlWithManyTestRelationModel> SqlWithManyTestRelationModels => Set<SqlWithManyTestRelationModel>();
+        public DbSet<SqlWithOneTestModel> SqlWithOneTestModels => Set<SqlWithOneTestModel>();
         public DbSet<SqlWithOneTestRelationModel> SqlWithOneTestRelationModels => Set<SqlWithOneTestRelationModel>();
         public DbSet<CachableTestModel> CachableTestModels => Set<CachableTestModel>();
         public TestDbContext(DbContextOptions options) : base(options)

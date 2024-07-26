@@ -11,6 +11,7 @@ namespace Framework.Test.API.Models
     public class SqlWithOneTestRelationModel : Entity<int>
     {
         public string Name { get; set; }
+        public virtual int SqlWithOneTestModelId { get; set; }
         public virtual SqlWithOneTestModel SqlWithOneTestModel { get; set; }
     }
 }

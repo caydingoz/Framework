@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Framework.Test.API.Migrations
 {
     [DbContext(typeof(TestDbContext))]
-    [Migration("20240402090211_Init")]
+    [Migration("20240710131232_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -114,7 +114,7 @@ namespace Framework.Test.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SqlWithOneTestModel");
+                    b.ToTable("SqlWithOneTestModels");
                 });
 
             modelBuilder.Entity("Framework.Test.API.Models.SqlWithOneTestRelationModel", b =>

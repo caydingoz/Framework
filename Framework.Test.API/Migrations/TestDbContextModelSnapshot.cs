@@ -111,7 +111,7 @@ namespace Framework.Test.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SqlWithOneTestModel");
+                    b.ToTable("SqlWithOneTestModels");
                 });
 
             modelBuilder.Entity("Framework.Test.API.Models.SqlWithOneTestRelationModel", b =>
