@@ -5,6 +5,6 @@ namespace Framework.AuthServer.Interfaces.Repositories
 {
     public interface IUserRefreshTokenRepository : IGenericRepository<UserRefreshToken, int>
     {
-        Task RemoveOldTokensAsync(string userId);
+        Task UpdateOldTokenAsync(string userId, UserRefreshToken refreshToken);
     }
 }

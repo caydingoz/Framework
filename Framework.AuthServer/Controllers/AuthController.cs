@@ -67,15 +67,20 @@ namespace Framework.AuthServer.Controllers
 
                 var token = TokenHandlerService.CreateToken(user, permissionsAndRoles.Permissions);
 
-                await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
+                var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
 
-                await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
+                var newRefreshToken = new UserRefreshToken
                 {
                     RefreshToken = token.RefreshToken,
                     AccessToken = token.AccessToken,
-                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(Configuration.JWT is not null ? Configuration.JWT.RefreshTokenValidityInDays : 1),
+                    RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshTokenExpiryTime), //TODO: Default Config
                     UserId = user.Id
-                });
+                };
+
+                if (await UserRefreshTokenRepository.AnyAsync(x => x.UserId == user.Id))
+                    await UserRefreshTokenRepository.UpdateOldTokenAsync(user.Id, newRefreshToken);
+                else
+                    await UserRefreshTokenRepository.InsertOneAsync(newRefreshToken);
 
                 var res = new LoginOutput
                 {
@@ -147,6 +152,7 @@ namespace Framework.AuthServer.Controllers
                 return res;
             });
         }
+
         [HttpPost("refresh-token")]
         public async Task<GeneralResponse<TokenOutput>> RefreshTokenAsync(RefreshTokenInput input)
         {
@@ -174,25 +180,26 @@ namespace Framework.AuthServer.Controllers
                 if (!isValid)
                     throw new Exception("Invalid access token or refresh token");
 
-                await UserRefreshTokenRepository.RemoveOldTokensAsync(user.Id);
-
                 var permissionsAndRoles = await RolePermissionRepository.GetUserRolesAndPermissionsByUserIdAsync(user.Id);
 
                 var token = TokenHandlerService.CreateToken(user, permissionsAndRoles.Permissions);
 
                 var refreshTokenExpiryTime = (Configuration.JWT is null || Configuration.JWT.RefreshTokenValidityInDays == 0) ? 1 : Configuration.JWT.RefreshTokenValidityInDays;
 
-                await UserRefreshTokenRepository.InsertOneAsync(new UserRefreshToken
+                var newRefreshToken = new UserRefreshToken
                 {
                     RefreshToken = token.RefreshToken,
                     AccessToken = token.AccessToken,
                     RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshTokenExpiryTime), //TODO: Default Config
                     UserId = user.Id
-                });
+                };
+
+                await UserRefreshTokenRepository.UpdateOldTokenAsync(user.Id, newRefreshToken);
 
                 return token;
             });
         }
+
         private IUserEmailStore<User> GetEmailStore()
         {
             if (!UserManager.SupportsUserEmail)

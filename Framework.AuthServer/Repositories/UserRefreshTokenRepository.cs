@@ -11,9 +11,13 @@ namespace Framework.AuthServer.Repositories
         {
         }
 
-        public async Task RemoveOldTokensAsync(string userId)
+        public async Task UpdateOldTokenAsync(string userId, UserRefreshToken refreshToken)
         {
-            await DbContext.RefreshTokens.Where(x => x.UserId == userId).ExecuteDeleteAsync();
+            await DbContext.RefreshTokens.Where(x => x.UserId == userId).ExecuteUpdateAsync(x => x
+                .SetProperty(y => y.UpdatedAt, DateTime.UtcNow)
+                .SetProperty(y => y.AccessToken, refreshToken.AccessToken)
+                .SetProperty(y => y.RefreshToken, refreshToken.RefreshToken)
+                .SetProperty(y => y.RefreshTokenExpiryTime, refreshToken.RefreshTokenExpiryTime));
         }
     }
 }
