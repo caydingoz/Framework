@@ -1,6 +1,6 @@
 ﻿namespace Framework.AuthServer.Enums
 {
-    public enum Pages
+    public enum Operations
     {
         Role,
         Test

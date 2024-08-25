@@ -1,14 +1,12 @@
-﻿using Framework.AuthServer.Models;
-using Framework.Shared.Dtos.AuthServer.UserService;
-using Framework.Shared.Enums;
-using System.Security.Claims;
+﻿using Framework.AuthServer.Dtos.AuthService.Output;
+using Framework.AuthServer.Models;
 
 namespace Framework.AuthServer.Interfaces.Services
 {
     public interface ITokenHandlerService
     {
-        public TokenOutput CreateToken(User user, Dictionary<string, PermissionTypes> permissions);
+        public TokenOutput CreateToken(User user, IEnumerable<Permission> permissions);
         public string GenerateRefreshToken();
-        public IEnumerable<Claim> GetPrincipalFromExpiredToken(string token);
+        public Guid GetUserIdFromToken(string token);
     }
 }

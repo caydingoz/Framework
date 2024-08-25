@@ -1,8 +1,7 @@
-﻿using Framework.AuthServer.Interfaces.Services;
+﻿using Framework.AuthServer.Dtos.AuthService.Output;
+using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
-using Framework.Shared.Dtos.AuthServer.UserService;
 using Framework.Shared.Entities.Configurations;
-using Framework.Shared.Enums;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,12 +17,12 @@ namespace Framework.AuthServer.Services
         {
             Configuration = configuration;
         }
-        public TokenOutput CreateToken(User user, Dictionary<string, PermissionTypes> permissions)
+        public TokenOutput CreateToken(User user, IEnumerable<Permission> permissions)
         {
             var permissionList = new List<string>();
 
             foreach (var permission in permissions)
-                permissionList.Add(permission.Key + ":" + permission.Value);
+                permissionList.Add(permission.Operation + ":" + permission.Type);
 
             JwtSecurityToken token;
             string refreshToken;
@@ -41,16 +40,16 @@ namespace Framework.AuthServer.Services
         {
             var authClaims = new List<Claim>
             {
-                new(ClaimTypes.Name, user.Id),
+                new(ClaimTypes.Name, user.Id.ToString()),
                 new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new(ClaimTypes.Email, user.Email ?? string.Empty),
+                new(ClaimTypes.Email, user.Email),
                 new("permissions", string.Join(";", permissions)),
             };
 
             return new Tuple<JwtSecurityToken, string>(GenerateAccessToken(authClaims), GenerateRefreshToken());
         }
 
-        private JwtSecurityToken GenerateAccessToken(List<Claim> authClaims)
+        private JwtSecurityToken GenerateAccessToken(IEnumerable<Claim> authClaims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration.JWT.Secret));
 
@@ -72,12 +71,26 @@ namespace Framework.AuthServer.Services
             return Convert.ToBase64String(randomNumber);
         }
 
-        public IEnumerable<Claim> GetPrincipalFromExpiredToken(string token)
+        public Guid GetUserIdFromToken(string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var jwtToken = tokenHandler.ReadJwtToken(token);
 
-            return jwtToken.Claims;
+            var claims = jwtToken.Claims;
+
+            if (claims is null || !claims.Any())
+                throw new Exception("Invalid access token or refresh token!");
+
+            var userId = claims.FirstOrDefault(m => m.Type == ClaimTypes.Name) ?? throw new Exception("Invalid access token or refresh token!");
+
+            try
+            {
+                return new Guid(userId.Value);
+            }
+            catch (Exception)
+            {
+                throw new Exception("Invalid access token or refresh token! ID couldn't converted!");
+            }
         }
     }
 }

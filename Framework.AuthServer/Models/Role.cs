@@ -1,12 +1,11 @@
-﻿using Framework.Domain.Interfaces.Entities;
-using Microsoft.AspNetCore.Identity;
+﻿using Framework.Domain.Entites;
 
 namespace Framework.AuthServer.Models
 {
-    public class Role : IdentityRole<string>, IUpdated, ICreated
+    public class Role : Entity<int>
     {
-        public ICollection<Permission>? Permissions { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public required string Name { get; set; }
+        public ICollection<Permission> Permissions { get; set; } = [];
+        public ICollection<User> Users { get; set; } = [];
     }
 }

@@ -1,15 +1,20 @@
-﻿using Framework.Domain.Interfaces.Entities;
-using Microsoft.AspNetCore.Identity;
+﻿using Framework.Domain.Entites;
 using System.ComponentModel.DataAnnotations;
 
 namespace Framework.AuthServer.Models;
 
-public class User : IdentityUser, IUpdated, ICreated
+public class User : Entity<Guid>
 {
     [StringLength(100)]
-    public string FirstName { get; set; } = string.Empty;
+    public required string Email { get; set; }
     [StringLength(100)]
-    public string LastName { get; set; } = string.Empty;
-    public DateTime UpdatedAt { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public required string FirstName { get; set; }
+    [StringLength(100)]
+    public required string LastName { get; set; }
+    [StringLength(20)]
+    public string PhoneNumber { get; set; } = string.Empty;
+    public required string Password { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public bool PhoneNumberConfirmed { get; set; }
+    public ICollection<Role> Roles { get; set; } = [];
 }

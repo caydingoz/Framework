@@ -1,6 +1,6 @@
 ﻿using Framework.Shared.Enums;
 
-namespace Framework.Shared.Dtos.AuthServer.UserService
+namespace Framework.AuthServer.Dtos.AuthService.Output
 {
     public class GetUserRolesAndPermissionsOutput
     {

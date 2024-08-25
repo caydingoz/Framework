@@ -1,17 +1,17 @@
 using Framework.Application;
 using Framework.AuthServer.Consts;
-using Framework.AuthServer.Interfaces.Repositories;
+using Framework.AuthServer.Dtos.RoleService.Input;
+using Framework.AuthServer.Dtos.RoleService.Output;
 using Framework.AuthServer.Models;
+using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
 using Framework.Shared.Dtos;
-using Framework.Shared.Dtos.AuthServer.RoleService;
 using Framework.Shared.Entities;
 using Framework.Shared.Entities.Configurations;
 using Framework.Shared.Enums;
 using Framework.Shared.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,158 +24,183 @@ namespace Framework.AuthServer.Controllers
         private readonly Configuration Configuration;
         private readonly ILogger<RolesController> Logger;
 
-        private readonly RoleManager<Role> RoleManager;
-        private readonly IPermissionRepository PermissionRepository;
+        private readonly IGenericRepository<Role, int> RoleRepository;
+        private readonly IGenericRepository<Permission, int> PermissionRepository;
 
         public RolesController(
             Configuration configuration,
             ILogger<RolesController> logger,
-            IPermissionRepository permissionRepository,
-            RoleManager<Role> roleManager
+            IGenericRepository<Role, int> roleRepository,
+            IGenericRepository<Permission, int> permissionRepository
             )
         {
             Configuration = configuration;
             Logger = logger;
+            RoleRepository = roleRepository;
             PermissionRepository = permissionRepository;
-            RoleManager = roleManager;
         }
 
         [HttpGet]
-        [Authorize(Policy = PageNames.Role + PermissionAccessTypes.ReadAccess)]
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.ReadAccess)]
         public async Task<GeneralResponse<GetRolesOutput>> GetRolesAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var sort = new Sort { Name = column ?? "Id", Type = sortType };
-                var roles = await RoleManager.Roles.SortBy(new[] { sort }).Skip(page * count).Take(count).ToListAsync();
+                var pagination = new Pagination { Page = page, Count = count };
+
+                var roles = await RoleRepository.GetAllAsync(readOnly: true, pagination: pagination, sorts: [sort]);
+
                 var res = new GetRolesOutput();
 
                 foreach (var role in roles)
                     res.Roles.Add(new RolesOutput { Id = role.Id, Name = role.Name ?? string.Empty, CreatedAt = role.CreatedAt, UpdatedAt = role.UpdatedAt });
 
-                res.TotalCount = await RoleManager.Roles.CountAsync();
+                res.TotalCount = await RoleRepository.CountAsync();
+
                 return res;
             });
         }
 
         [HttpPost]
-        [Authorize(Policy = PageNames.Role + PermissionAccessTypes.WriteAccess)]
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.WriteAccess)]
         public async Task<GeneralResponse<object>> AddRoleAsync(AddRoleInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                if (await RoleManager.Roles.AnyAsync(x => x.Name == input.Name))
+                if (await RoleRepository.AnyAsync(x => x.Name == input.Name))
                     throw new Exception($"There is already exist a role named {input.Name}");
 
-                await RoleManager.CreateAsync(new Role { Id = Guid.NewGuid().ToString(), Name = input.Name, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+                var role = new Role { Name = input.Name };
+
+                await RoleRepository.InsertOneAsync(role);
 
                 return true;
             });
         }
 
         [HttpDelete]
-        [Authorize(Policy = PageNames.Role + PermissionAccessTypes.DeleteAccess)]
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.DeleteAccess)]
         public async Task<GeneralResponse<object>> DeleteRolesAsync(DeleteRoleInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                if (await RoleManager.Roles.AnyAsync(x => input.Ids.Contains(x.Id) && x.NormalizedName == "ADMINISTRATOR"))
+                if (await RoleRepository.AnyAsync(x => input.Ids.Contains(x.Id) && x.Name == "ADMINISTRATOR"))
                     throw new Exception("Changes to the admin role are not allowed!");
 
-                await RoleManager.Roles.Where(x => input.Ids.Contains(x.Id)).ExecuteDeleteAsync();
+                await RoleRepository.DeleteManyAsync(input.Ids);
 
                 return true;
             });
         }
 
         [HttpGet("{roleId}/permissions")]
-        [Authorize(Policy = PageNames.Role + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetPermissionsByRoleIdOutput>> GetPermissionsByRoleIdAsync(string roleId, [FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType)
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.ReadAccess)]
+        public async Task<GeneralResponse<GetPermissionsByRoleIdOutput>> GetPermissionsByRoleIdAsync(int roleId, [FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var sort = new Sort { Name = column ?? "Id", Type = sortType };
-                var permissions = await PermissionRepository.WhereAsync(x => x.RoleId == roleId, readOnly: true, pagination: new Pagination { Page = page, Count = count }, sorts: new[] { sort });
+                var pagination = new Pagination { Page = page, Count = count };
+
+                var role = await RoleRepository.FirstOrDefaultAsync(x => x.Id == roleId, readOnly: true) ?? throw new Exception("Role not found!");
 
                 var res = new GetPermissionsByRoleIdOutput { RoleId = roleId };
 
-                foreach (var permission in permissions)
-                    res.Permissions.Add(new PermissionsOutput { Id = permission.Id, Operation = permission.Operation, Type = permission.Type, CreatedAt = permission.CreatedAt, UpdatedAt = permission.UpdatedAt });
+                foreach (var permission in role.Permissions.AsQueryable().SortBy([sort]).Paginate(pagination))
+                    res.Permissions.Add(new PermissionsOutput { Id = permission.Id, Operation = permission.Operation.ToString(), Type = permission.Type, CreatedAt = permission.CreatedAt, UpdatedAt = permission.UpdatedAt });
 
-                res.TotalCount = await PermissionRepository.CountAsync(x => x.RoleId == roleId);
+                res.TotalCount = role.Permissions.Count;
+
                 return res;
             });
         }
 
         [HttpPost("{roleId}/permissions")]
-        [Authorize(Policy = PageNames.Role + PermissionAccessTypes.WriteAccess)]
-        public async Task<GeneralResponse<object>> AddPermissionAsync([FromRoute] string roleId, AddPermissionByRoleIdInput input)
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.WriteAccess)]
+        public async Task<GeneralResponse<object>> AddPermissionToRoleAsync([FromRoute] int roleId, AddPermissionToRoleInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                var role = await RoleManager.Roles.Include(x => x.Permissions).FirstOrDefaultAsync(x => x.Id == roleId) ?? throw new Exception("Role is not exist!");
+                var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
 
-                if (role.NormalizedName == "ADMINISTRATOR")
+                if (role.Name.ToUpper() == Roles.ADMINISTRATOR_ROLE)
                     throw new Exception("Changes to the admin role are not allowed!");
 
-                if (role.Permissions is not null && role.Permissions.Any(x => x.RoleId == roleId && x.Operation == input.Operation))
-                    throw new Exception("Permission is exist!");
+                var existPermissionNames = role.Permissions.Select(x => x.Operation);
 
-                var permission = new Permission { RoleId = roleId, Operation = input.Operation, Type = input.PermissionType };
+                var newPermissions = input.Permissions.DistinctBy(x => x.Operation).Where(x => !existPermissionNames.Contains(x.Operation));
 
-                role.Permissions ??= new List<Permission>();
+                foreach (var newPermission in newPermissions)
+                {
+                    role.Permissions.Add(new Permission
+                    {
+                        Operation = newPermission.Operation,
+                        Type = newPermission.Type,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    });
+                }
 
-                role.Permissions.Add(permission);
-
-                await RoleManager.UpdateAsync(role);
+                await RoleRepository.UpdateOneAsync(role);
 
                 return true;
             });
         }
 
         [HttpPut("{roleId}/permissions")]
-        [Authorize(Policy = PageNames.Role + PermissionAccessTypes.WriteAccess)]
-        public async Task<GeneralResponse<object>> UpdatePermissionAsync([FromRoute] string roleId, UpdatePermissionByRoleIdInput input)
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.WriteAccess)]
+        public async Task<GeneralResponse<object>> UpdatePermissionInRoleAsync([FromRoute] int roleId, UpdatePermissionInRoleInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                var role = await RoleManager.Roles.Include(x => x.Permissions).FirstOrDefaultAsync(x => x.Id == roleId) ?? throw new Exception("Role is not exist!");
+                var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
 
-                if (role.NormalizedName == "ADMINISTRATOR")
+                if (role.Name.ToUpper() == Roles.ADMINISTRATOR_ROLE)
                     throw new Exception("Changes to the admin role are not allowed!");
 
-                if (role.Permissions is null || role.Permissions.Count == 0)
-                    throw new Exception("Permission is not exist!");
+                var notExistPermissionIds = input.Permissions.DistinctBy(x => x.Id).Where(x => !role.Permissions.Any(y => y.Id == x.Id));
 
-                var permission = role.Permissions.FirstOrDefault(x => x.Id == input.Id) ?? throw new Exception("Permission is not exist with given Id!");
+                if (notExistPermissionIds.Any())
+                    throw new Exception("Some permissionIds not found in role! Ids: " + string.Join(", ", notExistPermissionIds.Select(x => x.Id)));
 
-                permission.Type = input.PermissionType;
+                foreach (var permissionToUpdate in input.Permissions.DistinctBy(x => x.Id))
+                {
+                    var permission = role.Permissions.Single(x => x.Id == permissionToUpdate.Id);
+                    permission.Type = permissionToUpdate.Type;
+                    permission.UpdatedAt = DateTime.UtcNow;
+                }
 
-                await RoleManager.UpdateAsync(role);
+                await RoleRepository.UpdateOneAsync(role);
 
                 return true;
             });
         }
 
         [HttpDelete("{roleId}/permissions")]
-        [Authorize(Policy = PageNames.Role + PermissionAccessTypes.DeleteAccess)]
-        public async Task<GeneralResponse<object>> DeletePermissionAsync([FromRoute] string roleId, DeletePermissionByRoleIdInput input)
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.DeleteAccess)]
+        public async Task<GeneralResponse<object>> RemovePermissionFromRoleAsync([FromRoute] int roleId, RemovePermissionFromRoleInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                var role = await RoleManager.Roles.Include(x => x.Permissions).FirstOrDefaultAsync(x => x.Id == roleId) ?? throw new Exception("Role is not exist!");
+                var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
 
-                if (role.NormalizedName == "ADMINISTRATOR")
+                if (role.Name.ToUpper() == Roles.ADMINISTRATOR_ROLE)
                     throw new Exception("Changes to the admin role are not allowed!");
 
-                if (role.Permissions is null || role.Permissions.Count == 0)
-                    throw new Exception("Permission is not exist!");
+                var notExistPermissionIds = input.PermissionIds.Distinct().Where(x => !role.Permissions.Any(y => y.Id == x));
 
-                var permission = role.Permissions.FirstOrDefault(x => x.Id == input.Id) ?? throw new Exception("Permission is not exist with given Id!");
+                if (notExistPermissionIds.Any())
+                    throw new Exception("Some permissionIds not found in role! Ids: " + string.Join(", ", notExistPermissionIds));
 
-                role.Permissions.Remove(permission);
+                var permissionsToRemove = role.Permissions.Where(x => input.PermissionIds.Contains(x.Id)).ToList();
 
-                await RoleManager.UpdateAsync(role);
+                foreach (var permissionToRemove in permissionsToRemove)
+                {
+                    role.Permissions.Remove(permissionToRemove);
+                }
+
+                await RoleRepository.UpdateOneAsync(role);
 
                 return true;
             });

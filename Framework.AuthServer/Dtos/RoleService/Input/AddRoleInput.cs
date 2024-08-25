@@ -1,4 +1,4 @@
-﻿namespace Framework.Shared.Dtos.AuthServer.RoleService
+﻿namespace Framework.AuthServer.Dtos.RoleService.Input
 {
     public class AddRoleInput
     {

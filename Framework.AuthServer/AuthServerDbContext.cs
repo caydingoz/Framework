@@ -1,12 +1,13 @@
 ﻿using Framework.AuthServer.Models;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Framework.AuthServer
 {
-    public class AuthServerDbContext : IdentityDbContext<User, Role, string>
+    public class AuthServerDbContext : DbContext
     {
-        public DbSet<UserRefreshToken> RefreshTokens => Set<UserRefreshToken>();
+        public DbSet<User> Users => Set<User>();
+        public DbSet<UserToken> UserTokens => Set<UserToken>();
+        public DbSet<Role> Roles => Set<Role>();
         public DbSet<Permission> Permissions => Set<Permission>();
         public AuthServerDbContext(DbContextOptions options) : base(options)
         {
@@ -15,7 +16,8 @@ namespace Framework.AuthServer
         {
             base.OnModelCreating(builder);
             
-            builder.Entity<Role>().HasMany(x => x.Permissions).WithOne(x => x.Role);
+            builder.Entity<User>().HasMany(x => x.Roles).WithMany(x => x.Users);
+            builder.Entity<Role>().OwnsMany(x => x.Permissions);
         }
     }
 }

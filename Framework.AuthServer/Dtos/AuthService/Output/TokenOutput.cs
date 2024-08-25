@@ -1,4 +1,4 @@
-﻿namespace Framework.Shared.Dtos.AuthServer.UserService
+﻿namespace Framework.AuthServer.Dtos.AuthService.Output
 {
     public class TokenOutput
     {

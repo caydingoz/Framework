@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using Framework.AuthServer.Models;
-using Microsoft.AspNetCore.Identity;
 using Framework.AuthServer.Services;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.Shared.Entities.Configurations;
@@ -11,10 +10,11 @@ using Framework.Domain.Interfaces.Repositories;
 using Framework.MongoDB;
 using Framework.Domain.Entities;
 using Framework.Shared.Helpers;
-using Framework.AuthServer.Interfaces.Repositories;
-using Framework.AuthServer.Repositories;
 using Framework.AuthServer.Enums;
 using Framework.EF.Interceptors;
+using Framework.EF;
+using Framework.AuthServer.Interfaces.Repositories;
+using Framework.AuthServer.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,8 +36,11 @@ Console.WriteLine("Environment: " + builder.Environment.EnvironmentName);
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddSingleton<DefaultDataMigration>();
-builder.Services.AddScoped<IPermissionRepository, PermissionRepository>(); //TODO: MongoDb
-builder.Services.AddScoped<IUserRefreshTokenRepository, UserRefreshTokenRepository>(); //TODO: MongoDb
+builder.Services.AddScoped<IGenericRepository<User, Guid>, EfCoreRepositoryBase<User, AuthServerDbContext, Guid>>();
+builder.Services.AddScoped<IGenericRepository<Role, int>, EfCoreRepositoryBase<Role, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<Permission, int>, EfCoreRepositoryBase<Permission, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
+
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
 if(configuration.JWT is not null)
@@ -65,7 +68,7 @@ if(configuration.JWT is not null)
         };
     });
 }
-builder.Services.AddAuthorization(PermissionHelper.SetPolicies(Enum.GetNames(typeof(Pages))));
+builder.Services.AddAuthorization(PermissionHelper.SetPolicies(Enum.GetNames(typeof(Operations))));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -78,14 +81,6 @@ if (configuration.EF is not null)
         options.UseSqlServer(configuration.EF.ConnectionString);
         options.AddInterceptors(new SlowQueryInterceptor());
     }, ServiceLifetime.Scoped);
-
-    builder.Services.AddIdentity<User, Role>(options =>
-    {
-        options.User.RequireUniqueEmail = true;
-    })
-      .AddRoles<Role>()
-      .AddEntityFrameworkStores<AuthServerDbContext>()
-      .AddDefaultTokenProviders();
 }
 
 static void Migrate(IApplicationBuilder app)

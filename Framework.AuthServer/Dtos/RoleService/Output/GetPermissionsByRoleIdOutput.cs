@@ -1,10 +1,11 @@
-﻿using Framework.Shared.Enums;
+﻿using Framework.Shared.Dtos;
+using Framework.Shared.Enums;
 
-namespace Framework.Shared.Dtos.AuthServer.RoleService
+namespace Framework.AuthServer.Dtos.RoleService.Output
 {
     public class GetPermissionsByRoleIdOutput : PageOutput
     {
-        public required string RoleId { get; set; }
+        public required int RoleId { get; set; }
         public ICollection<PermissionsOutput> Permissions { get; set; } = new List<PermissionsOutput>();
     }
     public class PermissionsOutput
