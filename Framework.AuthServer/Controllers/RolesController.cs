@@ -42,21 +42,24 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet]
         [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetRolesOutput>> GetRolesAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType)
+        public async Task<GeneralResponse<GetRolesOutput>> GetRolesAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType, [FromQuery] string? filterName)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var sort = new Sort { Name = column ?? "Id", Type = sortType };
                 var pagination = new Pagination { Page = page, Count = count };
 
-                var roles = await RoleRepository.GetAllAsync(readOnly: true, pagination: pagination, sorts: [sort]);
+                var roles = await RoleRepository.WhereAsync(x => 
+                                                    filterName == null || x.Name.Contains(filterName)
+                                                    || x.Permissions.Any(y => filterName == null || y.Operation.Contains(filterName))
+                                                    , readOnly: true, pagination: pagination, sorts: [sort]);
 
                 var res = new GetRolesOutput();
 
                 foreach (var role in roles)
                     res.Roles.Add(new RolesOutput { Id = role.Id, Name = role.Name ?? string.Empty, CreatedAt = role.CreatedAt, UpdatedAt = role.UpdatedAt });
 
-                res.TotalCount = await RoleRepository.CountAsync();
+                res.TotalCount = await RoleRepository.CountAsync(x => filterName == null || x.Name.Contains(filterName));
 
                 return res;
             });
@@ -124,18 +127,18 @@ namespace Framework.AuthServer.Controllers
             {
                 var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
 
-                if (role.Name.ToUpper() == Roles.ADMINISTRATOR_ROLE)
+                if (role.Name.Equals(Roles.ADMINISTRATOR_ROLE, StringComparison.CurrentCultureIgnoreCase))
                     throw new Exception("Changes to the admin role are not allowed!");
 
                 var existPermissionNames = role.Permissions.Select(x => x.Operation);
 
-                var newPermissions = input.Permissions.DistinctBy(x => x.Operation).Where(x => !existPermissionNames.Contains(x.Operation));
+                var newPermissions = input.Permissions.DistinctBy(x => x.Operation).Where(x => !existPermissionNames.Contains(x.Operation.ToString()));
 
                 foreach (var newPermission in newPermissions)
                 {
                     role.Permissions.Add(new Permission
                     {
-                        Operation = newPermission.Operation,
+                        Operation = newPermission.Operation.ToString(),
                         Type = newPermission.Type,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -156,7 +159,7 @@ namespace Framework.AuthServer.Controllers
             {
                 var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
 
-                if (role.Name.ToUpper() == Roles.ADMINISTRATOR_ROLE)
+                if (role.Name.Equals(Roles.ADMINISTRATOR_ROLE, StringComparison.CurrentCultureIgnoreCase))
                     throw new Exception("Changes to the admin role are not allowed!");
 
                 var notExistPermissionIds = input.Permissions.DistinctBy(x => x.Id).Where(x => !role.Permissions.Any(y => y.Id == x.Id));
@@ -185,7 +188,7 @@ namespace Framework.AuthServer.Controllers
             {
                 var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
 
-                if (role.Name.ToUpper() == Roles.ADMINISTRATOR_ROLE)
+                if (role.Name.Equals(Roles.ADMINISTRATOR_ROLE, StringComparison.CurrentCultureIgnoreCase))
                     throw new Exception("Changes to the admin role are not allowed!");
 
                 var notExistPermissionIds = input.PermissionIds.Distinct().Where(x => !role.Permissions.Any(y => y.Id == x));

@@ -62,7 +62,7 @@ namespace Framework.AuthServer
 
                 var permission = new Permission
                 {
-                    Operation = Operations.Role,
+                    Operation = Operations.Role.ToString(),
                     Type = permissionType,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Framework.AuthServer.Migrations
 {
     [DbContext(typeof(AuthServerDbContext))]
-    [Migration("20240825153832_Init")]
+    [Migration("20240825185821_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -164,8 +164,10 @@ namespace Framework.AuthServer.Migrations
                             b1.Property<DateTime>("CreatedAt")
                                 .HasColumnType("datetime2");
 
-                            b1.Property<int>("Operation")
-                                .HasColumnType("int");
+                            b1.Property<string>("Operation")
+                                .IsRequired()
+                                .HasMaxLength(150)
+                                .HasColumnType("nvarchar(150)");
 
                             b1.Property<int>("Type")
                                 .HasColumnType("int");
