@@ -10,6 +10,6 @@ namespace Framework.AuthServer.Dtos.RoleService.Input
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public Operations Operation { get; set; }
         [JsonConverter(typeof(JsonStringEnumConverter))]
-        public PermissionTypes Type { get; set; }
+        public PermissionTypes Type { get; set; } = PermissionTypes.Read;
     }
 }

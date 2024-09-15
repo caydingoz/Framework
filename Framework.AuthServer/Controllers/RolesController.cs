@@ -2,6 +2,7 @@ using Framework.Application;
 using Framework.AuthServer.Consts;
 using Framework.AuthServer.Dtos.RoleService.Input;
 using Framework.AuthServer.Dtos.RoleService.Output;
+using Framework.AuthServer.Enums;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
@@ -94,6 +95,21 @@ namespace Framework.AuthServer.Controllers
                 await RoleRepository.DeleteManyAsync(input.Ids);
 
                 return true;
+            });
+        }
+
+        [HttpGet("permissions")]
+        [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.ReadAccess)]
+        public GeneralResponse<GetPermissionsOutput> GetAllPermissions()
+        {
+            return WithLoggingGeneralResponse(() =>
+            {
+                var res = new GetPermissionsOutput
+                {
+                    Permissions = Enum.GetValues(typeof(Operations)).Cast<Operations>().Select(v => v.ToString())
+                };
+
+                return res;
             });
         }
 

@@ -1,6 +1,4 @@
-﻿using Framework.AuthServer.Enums;
-
-namespace Framework.AuthServer.Dtos.RoleService.Input
+﻿namespace Framework.AuthServer.Dtos.RoleService.Input
 {
     public class AddPermissionToRoleInput
     {
