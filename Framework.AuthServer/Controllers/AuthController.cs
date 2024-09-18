@@ -1,6 +1,7 @@
 using Framework.Application;
 using Framework.AuthServer.Dtos.AuthService.Input;
 using Framework.AuthServer.Dtos.AuthService.Output;
+using Framework.AuthServer.Enums;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
@@ -97,9 +98,12 @@ namespace Framework.AuthServer.Controllers
                     FirstName = input.FirstName,
                     LastName = input.LastName,
                     PhoneNumber = input.PhoneNumber,
-                    Password = input.Password
+                    Password = input.Password,
+                    Title = input.Title,
+                    Status = UserStatusEnum.Passive
                 };
 
+                await UserRepository.InsertOneAsync(user);
 
                 var token = TokenHandlerService.CreateToken(user, Enumerable.Empty<Permission>());
 

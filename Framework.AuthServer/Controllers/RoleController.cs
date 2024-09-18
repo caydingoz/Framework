@@ -14,23 +14,22 @@ using Framework.Shared.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Framework.AuthServer.Controllers
 {
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
-    public class RolesController : BaseController
+    public class RoleController : BaseController
     {
         private readonly Configuration Configuration;
-        private readonly ILogger<RolesController> Logger;
+        private readonly ILogger<RoleController> Logger;
 
         private readonly IGenericRepository<Role, int> RoleRepository;
         private readonly IGenericRepository<Permission, int> PermissionRepository;
 
-        public RolesController(
+        public RoleController(
             Configuration configuration,
-            ILogger<RolesController> logger,
+            ILogger<RoleController> logger,
             IGenericRepository<Role, int> roleRepository,
             IGenericRepository<Permission, int> permissionRepository
             )

@@ -34,4 +34,8 @@
     <ProjectReference Include="..\Framework.Shared\Framework.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Dtos\UserService\Input\" />
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,5 @@
-﻿using Framework.Domain.Entites;
+﻿using Framework.AuthServer.Enums;
+using Framework.Domain.Entites;
 using System.ComponentModel.DataAnnotations;
 
 namespace Framework.AuthServer.Models;
@@ -16,5 +17,10 @@ public class User : Entity<Guid>
     public required string Password { get; set; }
     public bool EmailConfirmed { get; set; }
     public bool PhoneNumberConfirmed { get; set; }
+    [StringLength(50)]
+    public string Title { get; set; } = string.Empty;
+    public UserStatusEnum Status { get; set; }
+    [StringLength(50)]
+    public string Image { get; set; } = string.Empty;
     public ICollection<Role> Roles { get; set; } = [];
 }

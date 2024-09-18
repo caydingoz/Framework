@@ -11,5 +11,7 @@ namespace Framework.AuthServer.Dtos.AuthService.Input
         public required string Email { get; set; }
         [Required(ErrorMessage = "Password is required")]
         public required string Password { get; set; }
+        [Required(ErrorMessage = "Title is required")]
+        public required string Title { get; set; }
     }
 }

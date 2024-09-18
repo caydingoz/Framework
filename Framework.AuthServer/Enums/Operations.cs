@@ -3,6 +3,7 @@
     public enum Operations
     {
         Role,
-        Test
+        Test,
+        User
     }
 }
