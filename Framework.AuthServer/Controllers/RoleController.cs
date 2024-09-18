@@ -14,6 +14,7 @@ using Framework.Shared.Extensions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace Framework.AuthServer.Controllers
 {
@@ -42,16 +43,16 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet]
         [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetRolesOutput>> GetRolesAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType, [FromQuery] string? filterName)
+        public async Task<GeneralResponse<GetRolesOutput>> GetRolesAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes? sortType, [FromQuery] string? filterName, [FromQuery] Operations? operation)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
-                var sort = new Sort { Name = column ?? "Id", Type = sortType };
+                var sort = new Sort { Name = column ?? "Id", Type = sortType ?? SortTypes.ASC };
                 var pagination = new Pagination { Page = page, Count = count };
 
                 var roles = await RoleRepository.WhereAsync(x => 
-                                                    filterName == null || x.Name.Contains(filterName)
-                                                    || x.Permissions.Any(y => filterName == null || y.Operation.Contains(filterName))
+                                                    (filterName == null || x.Name.Contains(filterName) || x.Permissions.Any(y => filterName == null || y.Operation.Contains(filterName)))
+                                                    && (operation == null || x.Permissions.Any(y => y.Operation.Contains(operation.Value.ToString())))
                                                     , readOnly: true, pagination: pagination, sorts: [sort]);
 
                 var res = new GetRolesOutput();
@@ -67,7 +68,7 @@ namespace Framework.AuthServer.Controllers
 
         [HttpPost]
         [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.WriteAccess)]
-        public async Task<GeneralResponse<object>> AddRoleAsync(AddRoleInput input)
+        public async Task<GeneralResponse<object>> CreateRoleAsync(CreateRoleInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
@@ -114,11 +115,11 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet("{roleId}/permissions")]
         [Authorize(Policy = OperationNames.Role + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetPermissionsByRoleIdOutput>> GetPermissionsByRoleIdAsync(int roleId, [FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType)
+        public async Task<GeneralResponse<GetPermissionsByRoleIdOutput>> GetPermissionsByRoleIdAsync(int roleId, [FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes? sortType)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
-                var sort = new Sort { Name = column ?? "Id", Type = sortType };
+                var sort = new Sort { Name = column ?? "Id", Type = sortType ?? SortTypes.ASC };
                 var pagination = new Pagination { Page = page, Count = count };
 
                 var role = await RoleRepository.FirstOrDefaultAsync(x => x.Id == roleId, readOnly: true) ?? throw new Exception("Role not found!");

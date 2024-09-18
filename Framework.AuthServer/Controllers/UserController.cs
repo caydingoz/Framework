@@ -1,7 +1,8 @@
+using AutoMapper;
 using Framework.Application;
 using Framework.AuthServer.Consts;
-using Framework.AuthServer.Dtos.RoleService.Input;
 using Framework.AuthServer.Dtos.RoleService.Output;
+using Framework.AuthServer.Dtos.UserService.Input;
 using Framework.AuthServer.Dtos.UserService.Output;
 using Framework.AuthServer.Enums;
 using Framework.AuthServer.Models;
@@ -23,33 +24,37 @@ namespace Framework.AuthServer.Controllers
     {
         private readonly Configuration Configuration;
         private readonly ILogger<UserController> Logger;
-
+        private readonly IMapper Mapper;
         private readonly IGenericRepository<User, Guid> UserRepository;
+        private readonly IGenericRepository<Role, int> RoleRepository;
 
         public UserController(
             Configuration configuration,
             ILogger<UserController> logger,
-            IGenericRepository<User, Guid> userRepository
+            IMapper mapper,
+            IGenericRepository<User, Guid> userRepository,
+            IGenericRepository<Role, int> roleRepository
             )
         {
             Configuration = configuration;
             Logger = logger;
+            Mapper = mapper;
             UserRepository = userRepository;
+            RoleRepository = roleRepository;
         }
 
         [HttpGet]
         [Authorize(Policy = OperationNames.User + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetUsersOutput>> GetRolesAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] string? column, [FromQuery] SortTypes sortType, [FromQuery] string? filterName)
+        public async Task<GeneralResponse<GetUsersOutput>> GetUsersAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] UserStatusEnum? status, [FromQuery] SortTypes? sortType, [FromQuery] string? column, [FromQuery] string? filterName)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
-                var sort = new Sort { Name = column ?? "Id", Type = sortType };
+                var sort = new Sort { Name = column ?? "Id", Type = sortType ?? SortTypes.ASC };
                 var pagination = new Pagination { Page = page, Count = count };
 
-                var users = await UserRepository.WhereAsync(x => filterName == null || 
-                                                    x.FirstName.Contains(filterName) || 
-                                                    x.LastName.Contains(filterName) ||
-                                                    x.Email.Contains(filterName)
+                var users = await UserRepository.WhereAsync(x => 
+                                                    (filterName == null || x.FirstName.Contains(filterName) || x.LastName.Contains(filterName) || x.Email.Contains(filterName))
+                                                    && (status == null || x.Status == status)
                                                     , includes: x => x.Roles, readOnly: true, pagination: pagination, sorts: [sort]);
 
                 var res = new GetUsersOutput();
@@ -69,12 +74,66 @@ namespace Framework.AuthServer.Controllers
                         UpdatedAt = user.UpdatedAt
                     });
 
-                res.TotalCount = await UserRepository.CountAsync(x => filterName == null ||
+                res.TotalCount = await UserRepository.CountAsync(x => (filterName == null ||
                                                     x.FirstName.Contains(filterName) ||
                                                     x.LastName.Contains(filterName) ||
-                                                    x.Email.Contains(filterName));
+                                                    x.Email.Contains(filterName)) &&
+                                                    (status == null || x.Status == status));
 
                 return res;
+            });
+        }
+
+        [HttpPost]
+        [Authorize(Policy = OperationNames.User + PermissionAccessTypes.WriteAccess)]
+        public async Task<GeneralResponse<object>> CreateUserAsync(CreateUserInput input)
+        {
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
+            {
+                if (await UserRepository.AnyAsync(x => x.Email == input.Email))
+                    throw new Exception($"There is already exist a user with given email!");
+
+                var user = Mapper.Map<User>(input);
+
+                user.Password = input.FirstName + "123$";
+
+                var roles = await RoleRepository.WhereAsync(x => input.RoleIds.Contains(x.Id));
+
+                if (roles.Count == 0)
+                    throw new Exception("There is no role with given ids!");
+
+                user.Roles = roles;
+
+                await UserRepository.InsertOneAsync(user);
+
+                return true;
+            });
+        }
+
+        [HttpDelete]
+        [Authorize(Policy = OperationNames.User + PermissionAccessTypes.DeleteAccess)]
+        public async Task<GeneralResponse<object>> DeleteUserAsync(DeleteUserInput input)
+        {
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
+            {
+                input.Ids = input.Ids.Distinct().ToList();
+
+                if (await UserRepository.AnyAsync(x => input.Ids.Contains(x.Id) && x.FirstName == "ADMINISTRATOR"))
+                    throw new Exception("Changes to the admin are not allowed!");
+
+                var users = await UserRepository.WhereAsync(x => input.Ids.Contains(x.Id) && !x.IsDeleted);
+
+                if (users.Count == 0) throw new Exception("There is no user with given ids!");
+
+                foreach (var user in users)
+                {
+                    user.IsDeleted = true;
+                    user.Status = UserStatusEnum.Deleted;
+                }
+
+                await UserRepository.UpdateManyAsync(users);
+
+                return true;
             });
         }
     }

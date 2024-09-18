@@ -1,6 +1,6 @@
 ﻿namespace Framework.AuthServer.Dtos.RoleService.Input
 {
-    public class AddRoleInput
+    public class CreateRoleInput
     {
         public required string Name { get; set; }
     }

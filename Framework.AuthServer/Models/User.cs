@@ -12,9 +12,9 @@ public class User : Entity<Guid>
     public required string FirstName { get; set; }
     [StringLength(100)]
     public required string LastName { get; set; }
+    public required string Password { get; set; }
     [StringLength(20)]
     public string PhoneNumber { get; set; } = string.Empty;
-    public required string Password { get; set; }
     public bool EmailConfirmed { get; set; }
     public bool PhoneNumberConfirmed { get; set; }
     [StringLength(50)]
@@ -22,5 +22,6 @@ public class User : Entity<Guid>
     public UserStatusEnum Status { get; set; }
     [StringLength(50)]
     public string Image { get; set; } = string.Empty;
+    public bool IsDeleted { get; set; }
     public ICollection<Role> Roles { get; set; } = [];
 }

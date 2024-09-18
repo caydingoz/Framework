@@ -15,6 +15,7 @@ using Framework.EF.Interceptors;
 using Framework.EF;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Repositories;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,6 +74,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(opt => opt.AddPolicy(name: "CorsPolicy", builder => builder.WithOrigins("http://localhost:3000").AllowAnyMethod().AllowAnyHeader().AllowCredentials()));
+builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
 if (configuration.EF is not null)
 {
