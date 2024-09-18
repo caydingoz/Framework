@@ -1,7 +1,6 @@
 using AutoMapper;
 using Framework.Application;
 using Framework.AuthServer.Consts;
-using Framework.AuthServer.Dtos.RoleService.Output;
 using Framework.AuthServer.Dtos.UserService.Input;
 using Framework.AuthServer.Dtos.UserService.Output;
 using Framework.AuthServer.Enums;
