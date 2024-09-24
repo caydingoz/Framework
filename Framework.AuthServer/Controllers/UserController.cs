@@ -94,6 +94,7 @@ namespace Framework.AuthServer.Controllers
 
                 var user = Mapper.Map<User>(input);
 
+                user.Status = UserStatusEnum.Active;
                 user.Password = input.FirstName + "123$";
 
                 var roles = await RoleRepository.WhereAsync(x => input.RoleIds.Contains(x.Id));
@@ -120,9 +121,11 @@ namespace Framework.AuthServer.Controllers
                 if (await UserRepository.AnyAsync(x => input.Ids.Contains(x.Id) && x.FirstName == "ADMINISTRATOR"))
                     throw new Exception("Changes to the admin are not allowed!");
 
-                var users = await UserRepository.WhereAsync(x => input.Ids.Contains(x.Id) && !x.IsDeleted);
+                var users = await UserRepository.WhereAsync(x => input.Ids.Contains(x.Id));
 
-                if (users.Count == 0) throw new Exception("There is no user with given ids!");
+                if (users.Count == 0) throw new Exception("There is no user with given ids.");
+                
+                if (users.Any(x => x.Status == UserStatusEnum.Deleted)) throw new Exception("The selected user(s) have already been deleted.");
 
                 foreach (var user in users)
                 {
