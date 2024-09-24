@@ -9,7 +9,7 @@ var sort2 = new Sort { Name = "Name", Type = SortTypes.DESC };
 var pagination = new Pagination { Page = page, Count = count };
 
 var list = await SchoolRepository.WhereAsync(
-    filter: x => x.Id == id,
+    filter: x => x.Classrooms.Any(y => y.Id == id),
     readOnly: true,
     includeLogicalDeleted: true,
     includes: school => new List&lt;object&gt; 
@@ -43,7 +43,7 @@ var list = await SchoolRepository.WhereAsync(
     .Include(school => school.Classrooms).ThenInclude(classroom => classroom.Students)
     .Include(school => school.Classrooms).ThenInclude(classroom => classroom.Desks)
     .Where(school => school.Id == id)
-    .OrderBy(school => school.Id)
+    .OrderBy(school => school.Classrooms.Any(classroom => classroom.Id == id))
     .ThenByDescending(school => school.Name)
     .Skip(page * count)
     .Take(count)
