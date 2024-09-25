@@ -9,7 +9,7 @@ var sort2 = new Sort { Name = "Name", Type = SortTypes.DESC };
 var pagination = new Pagination { Page = page, Count = count };
 
 var list = await SchoolRepository.WhereAsync(
-    filter: x => x.Classrooms.Any(y => y.Id == id),
+    selector: x => x.Classrooms.Any(y => y.Id == id),
     readOnly: true,
     includeLogicalDeleted: true,
     includes: school => new List&lt;object&gt; 
@@ -49,10 +49,3 @@ var list = await SchoolRepository.WhereAsync(
     .Take(count)
     .ToListAsync();
 </code></pre>
-
-<p>This query:</p>
-<ul>
-  <li>Disables entity tracking (<code>AsNoTracking</code>) for read-only operations.</li>
-  <li>Includes <code>Teachers</code>, <code>Classrooms</code>, <code>Students</code>, and <code>Desks</code> using multiple <code>Include</code> and <code>ThenInclude</code> statements.</li>
-  <li>Filters, sorts, and paginates the results.</li>
-</ul>
