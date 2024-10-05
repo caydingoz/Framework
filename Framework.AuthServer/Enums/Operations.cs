@@ -4,6 +4,7 @@
     {
         Role,
         Test,
-        User
+        User,
+        SystemOperations
     }
 }

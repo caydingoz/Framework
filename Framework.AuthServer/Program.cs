@@ -16,6 +16,7 @@ using Framework.EF;
 using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Repositories;
 using System.Reflection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,6 +77,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddCors(opt => opt.AddPolicy(name: "CorsPolicy", builder => builder.WithOrigins("http://localhost:3000").AllowAnyMethod().AllowAnyHeader().AllowCredentials()));
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
+builder.Services.AddHealthChecks().AddDbContextCheck<AuthServerDbContext>("Sql Server");
+builder.Services.AddHealthChecks().AddRedis(configuration.Redis.ConnectionString, name: "Redis", failureStatus: HealthStatus.Unhealthy);
+
 if (configuration.EF is not null)
 {
     builder.Services.AddDbContext<AuthServerDbContext>(options => 
@@ -105,6 +109,7 @@ static void Migrate(IApplicationBuilder app)
 var app = builder.Build();
 
 app.UseRouting();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
