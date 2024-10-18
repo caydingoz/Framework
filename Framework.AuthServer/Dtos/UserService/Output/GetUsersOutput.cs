@@ -12,12 +12,18 @@ namespace Framework.AuthServer.Dtos.UserService.Output
         public required Guid Id { get; set; }
         public required string FirstName { get; set; }
         public required string LastName { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
         public required string Email { get; set; }
         public required string Title { get; set; }
         public string? Image { get; set; }
         public UserStatusEnum Status { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
-        public IEnumerable<string> Roles { get; set; } = [];
+        public IEnumerable<UserRoleOutput> Roles { get; set; } = [];
+    }
+    public class UserRoleOutput
+    {
+        public required int Id { get; set; }
+        public required string Name { get; set; }
     }
 }

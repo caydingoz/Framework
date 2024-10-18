@@ -8,8 +8,8 @@ namespace Framework.AuthServer.Mappers
     {
         public UserMapper()
         {
-            CreateMap<CreateUserInput, User>()
-                .ForMember(dest => dest.Password, opt => opt.MapFrom(src => src));
+            CreateMap<CreateUserInput, User>().ForMember(dest => dest.Password, opt => opt.MapFrom(src => src));
+            CreateMap<UpdateUserInput, User>().ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }

@@ -14,6 +14,7 @@ using Framework.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 
 namespace Framework.AuthServer.Controllers
 {
@@ -64,11 +65,12 @@ namespace Framework.AuthServer.Controllers
                         Id = user.Id,
                         FirstName = user.FirstName,
                         LastName = user.LastName,
+                        PhoneNumber = user.PhoneNumber,
                         Email = user.Email,
                         Title = user.Title,
                         Status = user.Status,
                         Image = user.Image,
-                        Roles = user.Roles.Select(x => x.Name),
+                        Roles = user.Roles.Select(x => new UserRoleOutput { Id = x.Id, Name = x.Name }),
                         CreatedAt = user.CreatedAt,
                         UpdatedAt = user.UpdatedAt
                     });
@@ -90,7 +92,12 @@ namespace Framework.AuthServer.Controllers
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
                 if (await UserRepository.AnyAsync(x => x.Email == input.Email))
-                    throw new Exception($"There is already exist a user with given email!");
+                    throw new Exception("There is already exist a user with given email!");
+
+                input.PhoneNumber = FormatPhoneNumber(input.PhoneNumber);
+
+                if (!IsPhoneNumberValid(input.PhoneNumber))
+                    throw new Exception("Phone number is not valid!");
 
                 var user = Mapper.Map<User>(input);
 
@@ -105,6 +112,37 @@ namespace Framework.AuthServer.Controllers
                 user.Roles = roles;
 
                 await UserRepository.InsertOneAsync(user);
+
+                return true;
+            });
+        }
+
+        [HttpPut]
+        [Authorize(Policy = OperationNames.User + PermissionAccessTypes.WriteAccess)]
+        public async Task<GeneralResponse<object>> UpdateUserAsync(UpdateUserInput input)
+        {
+            return await WithLoggingGeneralResponseAsync<object>(async () =>
+            {
+                if(await UserRepository.AnyAsync(x => x.Email == input.Email && x.Id != input.Id))
+                    throw new Exception("There is already exist a user with given email!");
+
+                var user = await UserRepository.GetByIdAsync(input.Id, includes: x => x.Roles) ?? throw new Exception("User not found!");
+
+                input.PhoneNumber = FormatPhoneNumber(input.PhoneNumber);
+
+                if (!IsPhoneNumberValid(input.PhoneNumber))
+                    throw new Exception("Phone number is not valid!");
+
+                Mapper.Map(input, user);
+
+                var roles = await RoleRepository.WhereAsync(x => input.RoleIds.Contains(x.Id));
+
+                if (roles.Count == 0)
+                    throw new Exception("There is no role with given ids!");
+
+                user.Roles = roles;
+
+                await UserRepository.UpdateOneAsync(user);
 
                 return true;
             });
@@ -137,6 +175,29 @@ namespace Framework.AuthServer.Controllers
 
                 return true;
             });
+        }
+        private static string FormatPhoneNumber(string phoneNumber)
+        {
+            phoneNumber = Regex.Replace(phoneNumber, @"\D", "");
+
+            if (phoneNumber.StartsWith('0'))
+                phoneNumber = phoneNumber[1..];
+
+            if (phoneNumber.Length != 10)
+                throw new Exception("The phone number must consist of 10 digits and only numbers are allowed.");
+
+            return string.Format("({0}) {1} {2} {3}",
+                phoneNumber.Substring(0, 3),
+                phoneNumber.Substring(3, 3), 
+                phoneNumber.Substring(6, 2), 
+                phoneNumber.Substring(8, 2));
+        }
+        private static bool IsPhoneNumberValid(string phoneNumber)
+        {
+            string pattern = @"^\(5\d{2}\) \d{3} \d{2} \d{2}$";
+            Regex regex = new(pattern);
+
+            return regex.IsMatch(phoneNumber);
         }
     }
 }
