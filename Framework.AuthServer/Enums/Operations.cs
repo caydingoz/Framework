@@ -5,6 +5,8 @@
         Role,
         Test,
         User,
-        SystemOperations
+        SystemOperations,
+        Activity,
+        WorkItem
     }
 }

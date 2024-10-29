@@ -24,4 +24,6 @@ public class User : Entity<Guid>
     public string Image { get; set; } = string.Empty;
     public bool IsDeleted { get; set; }
     public ICollection<Role> Roles { get; set; } = [];
+    public ICollection<Activity> Activities { get; set; } = [];
+    public ICollection<WorkItem> WorkItems { get; set; } = [];
 }

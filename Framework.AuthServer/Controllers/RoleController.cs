@@ -142,9 +142,6 @@ namespace Framework.AuthServer.Controllers
             {
                 var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
 
-                if (role.Name.Equals(Roles.ADMINISTRATOR_ROLE, StringComparison.CurrentCultureIgnoreCase))
-                    throw new Exception("Changes to the admin role are not allowed!");
-
                 var existPermissionNames = role.Permissions.Select(x => x.Operation);
 
                 var newPermissions = input.Permissions.DistinctBy(x => x.Operation).Where(x => !existPermissionNames.Contains(x.Operation.ToString()));

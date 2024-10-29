@@ -8,5 +8,7 @@ namespace Framework.AuthServer.Consts
         public const string Test = nameof(Operations.Test);
         public const string User = nameof(Operations.User);
         public const string SystemOperations = nameof(Operations.SystemOperations);
+        public const string Activity = nameof(Operations.Activity);
+        public const string WorkItem = nameof(Operations.WorkItem);
     }
 }
