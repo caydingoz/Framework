@@ -53,8 +53,10 @@ namespace Framework.AuthServer.Controllers
                 var pagination = new Pagination { Page = page, Count = count };
 
                 var users = await UserRepository.WhereAsync(x => 
-                                                    (filterName == null || x.FirstName.Contains(filterName) || x.LastName.Contains(filterName) || x.Email.Contains(filterName))
-                                                    && (status == null || x.Status == status)
+                                                    (filterName == null || 
+                                                        x.FirstName.Contains(filterName) || x.LastName.Contains(filterName) || x.Email.Contains(filterName) || x.PhoneNumber.Contains(filterName))
+                                                    && (status == null || 
+                                                        x.Status == status)
                                                     , includes: x => x.Roles, readOnly: true, pagination: pagination, sorts: [sort]);
 
                 var res = new GetUsersOutput();

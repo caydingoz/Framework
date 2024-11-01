@@ -90,16 +90,30 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
+                var userId = GetUserIdGuid();
+
                 if (input.StartTime >= input.EndTime)
                     throw new Exception("Start date must be greater than the end");
 
-                var activity = Mapper.Map<Activity>(input);
-                activity.UserId = GetUserIdGuid();
-
-                if (!await UserRepository.AnyAsync(x => x.Id == activity.UserId && x.WorkItems.Any(y => y.Id == input.WorkItemId)))
+                if (!await UserRepository.AnyAsync(x => x.Id == userId && x.WorkItems.Any(y => y.Id == input.WorkItemId)))
                     throw new Exception("There are no work items assigned to you that match the specified id.");
 
-                await ActivityRepository.InsertOneAsync(activity);
+                List<Activity> activities = [];
+
+                int loggedDay = input.EndTime.Day - input.StartTime.Day;
+
+                for (int i = 0; i < loggedDay; i++)
+                {
+                    var activity = Mapper.Map<Activity>(input);
+
+                    activity.UserId = userId;
+                    activity.StartTime = input.StartTime.AddDays(i);
+                    activity.EndTime = input.EndTime.AddDays(i-loggedDay);
+
+                    activities.Add(activity);
+                }
+
+                await ActivityRepository.InsertManyAsync(activities);
 
                 return true;
             });
