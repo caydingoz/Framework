@@ -69,10 +69,8 @@ namespace Framework.AuthServer.Controllers
                         {
                             if (previousActivity.Id == activity.Id) break;
 
-                            if (previousActivity.StartTime <= activity.StartTime && previousActivity.EndTime >= activity.EndTime)
-                            {
+                            if (previousActivity.StartTime <= activity.StartTime && previousActivity.EndTime > activity.StartTime)
                                 layer++;
-                            }
                         }
 
                         activityDto.Layer = layer;
@@ -102,7 +100,7 @@ namespace Framework.AuthServer.Controllers
 
                 int loggedDay = input.EndTime.Day - input.StartTime.Day;
 
-                for (int i = 0; i < loggedDay; i++)
+                for (int i = 0; i <= loggedDay; i++)
                 {
                     var activity = Mapper.Map<Activity>(input);
 

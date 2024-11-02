@@ -4,6 +4,7 @@ using Framework.AuthServer.Consts;
 using Framework.AuthServer.Dtos.AbsenceService.Input;
 using Framework.AuthServer.Dtos.AbsenceService.Output;
 using Framework.AuthServer.Enums;
+using Framework.AuthServer.Helpers;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
@@ -13,7 +14,6 @@ using Framework.Shared.Entities.Configurations;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.NetworkInformation;
 
 namespace Framework.AuthServer.Controllers
 {
@@ -44,13 +44,12 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet]
         [Authorize(Policy = OperationNames.Absence + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetAllAbsenceRequestsOutput>> GetAllAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] Guid? userId, [FromQuery] AbsenceTypes? type, [FromQuery] string? filterName, [FromQuery] AbsenceStatus status = AbsenceStatus.Pending)
+        public async Task<GeneralResponse<GetAllAbsenceRequestsOutput>> GetAllAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] AbsenceTypes? type, [FromQuery] string? filterName, [FromQuery] AbsenceStatus status = AbsenceStatus.Pending)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var absences = await AbsenceRepository.WhereAsync(x => 
                     x.Status == status &&
-                    (userId == null || x.UserId == userId) &&
                     (type == null || x.Type == type) &&
                     (filterName == null || x.User.FirstName.Contains(filterName) || x.User.LastName.Contains(filterName) || x.User.Email.Contains(filterName) || x.User.PhoneNumber.Contains(filterName))
                     , includes: x => x.User, pagination: new Pagination { Page = page, Count = count });
@@ -73,7 +72,6 @@ namespace Framework.AuthServer.Controllers
 
                 res.TotalCount = await AbsenceRepository.CountAsync(x =>
                     x.Status == status &&
-                    (userId == null || x.UserId == userId) &&
                     (type == null || x.Type == type) &&
                     (filterName == null || x.User.FirstName.Contains(filterName) || x.User.LastName.Contains(filterName) || x.User.Email.Contains(filterName) || x.User.PhoneNumber.Contains(filterName))
                     );
@@ -84,12 +82,17 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet("user")]
         [Authorize(Policy = OperationNames.Absence + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetUserAbsenceRequestsOutput>> GetUserAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count)
+        public async Task<GeneralResponse<GetUserAbsenceRequestsOutput>> GetUserAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] AbsenceTypes? type, [FromQuery] string? description, [FromQuery] AbsenceStatus? status)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserIdGuid();
-                var absences = await AbsenceRepository.WhereAsync(x => x.UserId == userId, pagination: new Pagination { Page = page, Count = count });
+                var absences = await AbsenceRepository.WhereAsync(x => 
+                    x.UserId == userId &&
+                    (status == null || x.Status == status) &&
+                    (type == null || x.Type == type) &&
+                    (description == null || x.Description.Contains(description))
+                    , pagination: new Pagination { Page = page, Count = count });
 
                 var res = new GetUserAbsenceRequestsOutput();
 
@@ -97,10 +100,14 @@ namespace Framework.AuthServer.Controllers
                 {
                     var absenceDto = Mapper.Map<AbsenceDTO>(absence);
 
-                    res.Data.Add(absenceDto);
+                    res.Absences.Add(absenceDto);
                 }
 
-                res.TotalCount = await AbsenceRepository.CountAsync(x => x.UserId == userId);
+                res.TotalCount = await AbsenceRepository.CountAsync(x =>
+                    x.UserId == userId &&
+                    (status == null || x.Status == status) &&
+                    (type == null || x.Type == type) &&
+                    (description == null || x.Description.Contains(description)));
 
                 return res;
             });
@@ -112,20 +119,24 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                if (input.Duration % .5 != 0)
-                    throw new Exception("Duration must be a multiple of 5.");
                 if (input.StartTime >= input.EndTime)
-                    throw new Exception("Start date must be greater than the end");
+                    throw new Exception("Start time must be earlier than the end time.");
+
+                LeaveCalculator.ValidateAbsenceTime(input.StartTime);
+                LeaveCalculator.ValidateAbsenceTime(input.EndTime);
+
+                var duration = LeaveCalculator.CalculateDuration(input.StartTime, input.EndTime);
 
                 var userId = GetUserIdGuid();
 
                 var user = await UserRepository.GetByIdAsync(userId) ?? throw new Exception("User not found.");
 
-                if(user.TotalAbsenceEntitlement < input.Duration)
+                if(user.TotalAbsenceEntitlement < duration)
                     throw new Exception($"Your leave balance is insufficient. Current leave balance: {user.TotalAbsenceEntitlement} days.");
 
                 var absence = Mapper.Map<Absence>(input);
                 absence.UserId = userId;
+                absence.Duration = duration;
 
                 await AbsenceRepository.InsertOneAsync(absence);
 
