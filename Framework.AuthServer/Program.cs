@@ -43,6 +43,7 @@ builder.Services.AddScoped<IGenericRepository<Role, int>, EfCoreRepositoryBase<R
 builder.Services.AddScoped<IGenericRepository<Permission, int>, EfCoreRepositoryBase<Permission, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<WorkItem, int>, EfCoreRepositoryBase<WorkItem, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Activity, int>, EfCoreRepositoryBase<Activity, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<Absence, int>, EfCoreRepositoryBase<Absence, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
 
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();

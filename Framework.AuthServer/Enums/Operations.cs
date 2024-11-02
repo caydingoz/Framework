@@ -7,6 +7,7 @@
         User,
         SystemOperations,
         Activity,
-        WorkItem
+        WorkItem,
+        Absence
     }
 }

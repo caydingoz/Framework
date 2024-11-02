@@ -19,11 +19,13 @@ public class User : Entity<Guid>
     public bool PhoneNumberConfirmed { get; set; }
     [StringLength(50)]
     public string Title { get; set; } = string.Empty;
-    public UserStatusEnum Status { get; set; }
+    public UserStatus Status { get; set; }
     [StringLength(50)]
     public string Image { get; set; } = string.Empty;
     public bool IsDeleted { get; set; }
+    public double TotalAbsenceEntitlement { get; set; }
     public ICollection<Role> Roles { get; set; } = [];
     public ICollection<Activity> Activities { get; set; } = [];
     public ICollection<WorkItem> WorkItems { get; set; } = [];
+    public ICollection<Absence> Absences { get; set; } = [];
 }

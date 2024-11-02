@@ -45,7 +45,7 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet]
         [Authorize(Policy = OperationNames.User + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetUsersOutput>> GetUsersAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] UserStatusEnum? status, [FromQuery] SortTypes? sortType, [FromQuery] string? column, [FromQuery] string? filterName)
+        public async Task<GeneralResponse<GetUsersOutput>> GetUsersAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] UserStatus? status, [FromQuery] SortTypes? sortType, [FromQuery] string? column, [FromQuery] string? filterName)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
@@ -103,7 +103,7 @@ namespace Framework.AuthServer.Controllers
 
                 var user = Mapper.Map<User>(input);
 
-                user.Status = UserStatusEnum.Active;
+                user.Status = UserStatus.Active;
                 user.Password = input.FirstName + "123$";
 
                 var roles = await RoleRepository.WhereAsync(x => input.RoleIds.Contains(x.Id));
@@ -165,12 +165,12 @@ namespace Framework.AuthServer.Controllers
 
                 if (users.Count == 0) throw new Exception("There is no user with given ids.");
                 
-                if (users.Any(x => x.Status == UserStatusEnum.Deleted)) throw new Exception("The selected user(s) have already been deleted.");
+                if (users.Any(x => x.Status == UserStatus.Deleted)) throw new Exception("The selected user(s) have already been deleted.");
 
                 foreach (var user in users)
                 {
                     user.IsDeleted = true;
-                    user.Status = UserStatusEnum.Deleted;
+                    user.Status = UserStatus.Deleted;
                 }
 
                 await UserRepository.UpdateManyAsync(users);

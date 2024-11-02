@@ -100,7 +100,7 @@ namespace Framework.AuthServer.Controllers
                     PhoneNumber = input.PhoneNumber,
                     Password = input.Password,
                     Title = input.Title,
-                    Status = UserStatusEnum.Passive
+                    Status = UserStatus.Passive
                 };
 
                 await UserRepository.InsertOneAsync(user);

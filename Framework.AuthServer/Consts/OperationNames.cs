@@ -10,5 +10,6 @@ namespace Framework.AuthServer.Consts
         public const string SystemOperations = nameof(Operations.SystemOperations);
         public const string Activity = nameof(Operations.Activity);
         public const string WorkItem = nameof(Operations.WorkItem);
+        public const string Absence = nameof(Operations.Absence);
     }
 }

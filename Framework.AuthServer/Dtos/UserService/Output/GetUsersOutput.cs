@@ -16,7 +16,7 @@ namespace Framework.AuthServer.Dtos.UserService.Output
         public required string Email { get; set; }
         public required string Title { get; set; }
         public string? Image { get; set; }
-        public UserStatusEnum Status { get; set; }
+        public UserStatus Status { get; set; }
         public DateTime UpdatedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public IEnumerable<UserRoleOutput> Roles { get; set; } = [];

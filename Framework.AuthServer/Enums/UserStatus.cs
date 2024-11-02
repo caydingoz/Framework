@@ -1,6 +1,6 @@
 ﻿namespace Framework.AuthServer.Enums
 {
-    public enum UserStatusEnum
+    public enum UserStatus
     {
         Passive,
         Active,
