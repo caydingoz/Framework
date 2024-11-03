@@ -66,6 +66,7 @@ namespace Framework.AuthServer.Controllers
                     absenceDto.LastName = absence.User.LastName;
                     absenceDto.Email = absence.User.Email;
                     absenceDto.PhoneNumber = absence.User.PhoneNumber;
+                    absenceDto.Image = absence.User.Image;
 
                     res.Absences.Add(absenceDto);
                 }
