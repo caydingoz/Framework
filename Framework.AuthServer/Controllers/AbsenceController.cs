@@ -11,6 +11,7 @@ using Framework.Shared.Consts;
 using Framework.Shared.Dtos;
 using Framework.Shared.Entities;
 using Framework.Shared.Entities.Configurations;
+using Framework.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -42,7 +43,7 @@ namespace Framework.AuthServer.Controllers
             AbsenceRepository = absenceRepository;
         }
 
-        [HttpGet]
+        [HttpGet("admin/requests")]
         [Authorize(Policy = OperationNames.Absence + PermissionAccessTypes.ReadAccess)]
         public async Task<GeneralResponse<GetAllAbsenceRequestsOutput>> GetAllAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] AbsenceTypes? type, [FromQuery] string? filterName, [FromQuery] AbsenceStatus status = AbsenceStatus.Pending)
         {
@@ -81,7 +82,7 @@ namespace Framework.AuthServer.Controllers
             });
         }
 
-        [HttpGet("user")]
+        [HttpGet("user/requests")]
         [Authorize(Policy = OperationNames.Absence + PermissionAccessTypes.ReadAccess)]
         public async Task<GeneralResponse<GetUserAbsenceRequestsOutput>> GetUserAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] AbsenceTypes? type, [FromQuery] string? description, [FromQuery] AbsenceStatus? status)
         {
@@ -93,7 +94,7 @@ namespace Framework.AuthServer.Controllers
                     (status == null || x.Status == status) &&
                     (type == null || x.Type == type) &&
                     (description == null || x.Description.Contains(description))
-                    , pagination: new Pagination { Page = page, Count = count });
+                    , pagination: new Pagination { Page = page, Count = count }, sorts: [new Sort { Name = "Status", Type = SortTypes.ASC }]);
 
                 var res = new GetUserAbsenceRequestsOutput();
 
@@ -109,6 +110,41 @@ namespace Framework.AuthServer.Controllers
                     (status == null || x.Status == status) &&
                     (type == null || x.Type == type) &&
                     (description == null || x.Description.Contains(description)));
+
+                return res;
+            });
+        }
+
+        [HttpGet("user/accurals")]
+        [Authorize(Policy = OperationNames.Absence + PermissionAccessTypes.ReadAccess)]
+        public async Task<GeneralResponse<GetUserAbsenceInfoOutput>> GetUserAbsenceInfoAsync()
+        {
+            return await WithLoggingGeneralResponseAsync(async () =>
+            {
+                var userId = GetUserIdGuid();
+
+                var user = await UserRepository.GetByIdAsync(userId, includes: x => x.Absences) ?? throw new Exception("User not found.");
+
+                var res = new GetUserAbsenceInfoOutput();
+
+                int workYears = DateTime.Now.Year - user.EmploymentDate.Year;
+
+                for (int i = 0; i <= workYears; i++)
+                {
+                    int annualDate = i == 0 ? 0 : 14;
+                    double usedDay = user.Absences.Where(x => x.StartTime >= user.EmploymentDate.AddYears(i)
+                        && x.StartTime <= user.EmploymentDate.AddYears(i + 1)
+                        && x.Status == AbsenceStatus.Approved).Sum(x => x.Duration);
+
+                    res.AbsenceInfos.Add(new AbsenceInfo
+                    {
+                        AnnualDay = annualDate,
+                        AnnualStart = user.EmploymentDate.AddYears(i),
+                        AnnualEnd = user.EmploymentDate.AddYears(i + 1).AddDays(-1),
+                        RemainingDay = annualDate - usedDay,
+                        UsedDay = usedDay
+                    });
+                }
 
                 return res;
             });
