@@ -62,18 +62,16 @@ namespace Framework.AuthServer.Controllers
 
                     foreach (var activity in dailyActivities)
                     {
-                        int layer = 0;
                         var activityDto = Mapper.Map<ActivityDTO>(activity);
 
                         foreach (var previousActivity in dailyActivities)
                         {
                             if (previousActivity.Id == activity.Id) break;
 
-                            if (previousActivity.StartTime <= activity.StartTime && previousActivity.EndTime > activity.StartTime)
-                                layer++;
+                            if (activity.StartTime >= previousActivity.StartTime && (activity.StartTime < previousActivity.EndTime || activity.EndTime <= previousActivity.EndTime))
+                                activityDto.Layer = res.Activities.First(x => x.Id == previousActivity.Id).Layer + 1;
                         }
 
-                        activityDto.Layer = layer;
                         res.Activities.Add(activityDto);
                     }
                 }

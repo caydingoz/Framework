@@ -45,13 +45,13 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet("admin/requests")]
         [Authorize(Policy = OperationNames.Absence + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetAllAbsenceRequestsOutput>> GetAllAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] AbsenceTypes? type, [FromQuery] string? filterName, [FromQuery] AbsenceStatus status = AbsenceStatus.Pending)
+        public async Task<GeneralResponse<GetAllAbsenceRequestsOutput>> GetAllAbsenceRequestsAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] AbsenceTypes? type, [FromQuery] string? filterName, [FromQuery] AbsenceStatus? status)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var absences = await AbsenceRepository.WhereAsync(x => 
-                    x.Status == status &&
                     (type == null || x.Type == type) &&
+                    (status == null || x.Status == status) &&
                     (filterName == null || x.User.FirstName.Contains(filterName) || x.User.LastName.Contains(filterName) || x.User.Email.Contains(filterName) || x.User.PhoneNumber.Contains(filterName))
                     , includes: x => x.User, pagination: new Pagination { Page = page, Count = count });
 
@@ -94,7 +94,7 @@ namespace Framework.AuthServer.Controllers
                     (status == null || x.Status == status) &&
                     (type == null || x.Type == type) &&
                     (description == null || x.Description.Contains(description))
-                    , pagination: new Pagination { Page = page, Count = count }, sorts: [new Sort { Name = "Status", Type = SortTypes.ASC }]);
+                    , pagination: new Pagination { Page = page, Count = count }, sorts: [new Sort { Name = nameof(Absence.CreatedAt), Type = SortTypes.DESC }]);
 
                 var res = new GetUserAbsenceRequestsOutput();
 
