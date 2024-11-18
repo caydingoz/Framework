@@ -13,13 +13,13 @@
                 bool isEndDay = current.Date == endTime.Date;
 
                 DateTime dayStart = isStartDay ? startTime : new DateTime(current.Year, current.Month, current.Day, 8, 0, 0);
-                DateTime dayEnd = isEndDay ? endTime : new DateTime(current.Year, current.Month, current.Day, 18, 0, 0);
+                DateTime dayEnd = isEndDay ? endTime : new DateTime(current.Year, current.Month, current.Day, 17, 0, 0);
 
                 if (dayStart.Hour == 8 && dayEnd.Hour == 12)
                     totalDays += 0.5;
-                else if (dayStart.Hour == 12 && dayEnd.Hour == 18)
+                else if (dayStart.Hour == 12 && dayEnd.Hour == 17)
                     totalDays += 0.5;
-                else if (dayStart.Hour == 8 && dayEnd.Hour == 18)
+                else if (dayStart.Hour == 8 && dayEnd.Hour == 17)
                     totalDays += 1;
 
                 current = current.AddDays(1);

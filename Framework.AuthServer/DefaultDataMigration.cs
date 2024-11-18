@@ -41,7 +41,7 @@ namespace Framework.AuthServer
 
         private async Task CreateDefaultRolesAsync()
         {
-            await CreateRoleAsync("Administrator");
+            await CreateRoleAsync(Roles.ADMINISTRATOR_ROLE);
         }
 
         private async Task CreateDefaultUsersAsync()
@@ -80,14 +80,14 @@ namespace Framework.AuthServer
 
         private async Task AddAdministratorAsync(string email)
         {
-            User? admin = await UserRepository.SingleOrDefaultAsync(x => x.Email == email, includes: x => x.Roles.Select(y => y.Permissions));
+            User? admin = await UserRepository.SingleOrDefaultAsync(x => x.Email == email, includes: x => x.Roles);
 
             if (admin is null)
             {
                 var newAdmin = new User
                 {
                     FirstName = Roles.ADMINISTRATOR_ROLE,
-                    LastName = Roles.ADMINISTRATOR_ROLE,
+                    LastName = string.Empty,
                     Email = email,
                     Password = "Pass123$"
                 };
@@ -97,8 +97,7 @@ namespace Framework.AuthServer
 
             if (admin is not null && !admin.Roles.Any(x => x.Name == Roles.ADMINISTRATOR_ROLE))
             {
-                var role = await RoleRepository.SingleOrDefaultAsync(x => x.Name == Roles.ADMINISTRATOR_ROLE, includes: x => x.Permissions) 
-                        ?? throw new Exception(Roles.ADMINISTRATOR_ROLE + " role not found!");
+                var role = await RoleRepository.SingleOrDefaultAsync(x => x.Name == Roles.ADMINISTRATOR_ROLE) ?? throw new Exception(Roles.ADMINISTRATOR_ROLE + " role not found!");
 
                 admin.Roles.Add(role);
 

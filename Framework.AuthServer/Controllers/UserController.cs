@@ -45,7 +45,7 @@ namespace Framework.AuthServer.Controllers
 
         [HttpGet]
         [Authorize(Policy = OperationNames.User + PermissionAccessTypes.ReadAccess)]
-        public async Task<GeneralResponse<GetUsersOutput>> GetUsersAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] UserStatus? status, [FromQuery] SortTypes? sortType, [FromQuery] string? column, [FromQuery] string? filterName)
+        public async Task<GeneralResponse<GetUsersOutput>> GetUsersAsync([FromQuery] int page, [FromQuery] int count, [FromQuery] UserStatus? status, [FromQuery] SortTypes? sortType, [FromQuery] string? column, [FromQuery] string? filterName, [FromQuery] int[]? roleIds = null)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
@@ -53,11 +53,10 @@ namespace Framework.AuthServer.Controllers
                 var pagination = new Pagination { Page = page, Count = count };
 
                 var users = await UserRepository.WhereAsync(x => 
-                                                    (filterName == null || 
-                                                        x.FirstName.Contains(filterName) || x.LastName.Contains(filterName) || x.Email.Contains(filterName) || x.PhoneNumber.Contains(filterName))
-                                                    && (status == null || 
-                                                        x.Status == status)
-                                                    , includes: x => x.Roles, readOnly: true, pagination: pagination, sorts: [sort]);
+                                    (filterName == null || x.FirstName.Contains(filterName) || x.LastName.Contains(filterName) || x.Email.Contains(filterName) || x.PhoneNumber.Contains(filterName))
+                                    && (status == null || x.Status == status)
+                                    && (roleIds == null || roleIds.All(roleId => x.Roles.Any(y => y.Id == roleId)))
+                                    , includes: x => x.Roles, readOnly: true, pagination: pagination, sorts: [sort]);
 
                 var res = new GetUsersOutput();
 
@@ -77,11 +76,10 @@ namespace Framework.AuthServer.Controllers
                         UpdatedAt = user.UpdatedAt
                     });
 
-                res.TotalCount = await UserRepository.CountAsync(x => (filterName == null ||
-                                                    x.FirstName.Contains(filterName) ||
-                                                    x.LastName.Contains(filterName) ||
-                                                    x.Email.Contains(filterName)) &&
-                                                    (status == null || x.Status == status));
+                res.TotalCount = await UserRepository.CountAsync(x =>
+                                    (filterName == null || x.FirstName.Contains(filterName) || x.LastName.Contains(filterName) || x.Email.Contains(filterName) || x.PhoneNumber.Contains(filterName))
+                                    && (status == null || x.Status == status)
+                                    && (roleIds == null || x.Roles.Any(y => roleIds.Contains(y.Id))));
 
                 return res;
             });
