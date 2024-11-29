@@ -89,6 +89,9 @@ namespace Framework.AuthServer.Controllers
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserIdGuid();
+
+                var user = await UserRepository.GetByIdAsync(userId);
+
                 var absences = await AbsenceRepository.WhereAsync(x => 
                     x.UserId == userId &&
                     (status == null || x.Status == status) &&
@@ -110,6 +113,8 @@ namespace Framework.AuthServer.Controllers
                     (status == null || x.Status == status) &&
                     (type == null || x.Type == type) &&
                     (description == null || x.Description.Contains(description)));
+
+                res.EmploymentDate = user.EmploymentDate;
 
                 return res;
             });
@@ -156,17 +161,17 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                if (input.StartTime >= input.EndTime)
-                    throw new Exception("Start time must be earlier than the end time.");
-
-                LeaveCalculator.ValidateAbsenceTime(input.StartTime);
-                LeaveCalculator.ValidateAbsenceTime(input.EndTime);
-
-                var duration = LeaveCalculator.CalculateDuration(input.StartTime, input.EndTime);
-
                 var userId = GetUserIdGuid();
 
                 var user = await UserRepository.GetByIdAsync(userId) ?? throw new Exception("User not found.");
+
+                if (input.StartTime >= input.EndTime)
+                    throw new Exception("Start time must be earlier than the end time.");
+
+                LeaveCalculator.ValidateAbsenceDate(input.StartTime, user.EmploymentDate);
+                LeaveCalculator.ValidateAbsenceDate(input.EndTime, user.EmploymentDate);
+
+                var duration = LeaveCalculator.CalculateBusinessDaysDuration(input.StartTime, input.EndTime);
 
                 if(user.TotalAbsenceEntitlement < duration)
                     throw new Exception($"Your leave balance is insufficient. Current leave balance: {user.TotalAbsenceEntitlement} days.");
