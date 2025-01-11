@@ -96,15 +96,23 @@ namespace Framework.AuthServer.Controllers
 
                 List<Activity> activities = [];
 
-                int loggedDay = input.EndTime.Day - input.StartTime.Day;
+                int loggedDay = (input.EndTime - input.StartTime).Days;
 
                 for (int i = 0; i <= loggedDay; i++)
                 {
+                    var startDate = input.StartTime.AddDays(i);
+
+                    if (startDate.DayOfWeek == DayOfWeek.Saturday || startDate.DayOfWeek == DayOfWeek.Sunday)
+                        continue;
+
+                    if (startDate.Date == input.EndTime.Date && input.EndTime.Hour == 0)
+                        continue;
+
                     var activity = Mapper.Map<Activity>(input);
 
                     activity.UserId = userId;
-                    activity.StartTime = input.StartTime.AddDays(i);
-                    activity.EndTime = input.EndTime.AddDays(i-loggedDay);
+                    activity.StartTime = startDate;
+                    activity.EndTime = startDate.Date + (input.EndTime.TimeOfDay.Hours == 0 ? new TimeSpan(23, 59, 59) : input.EndTime.TimeOfDay);
 
                     activities.Add(activity);
                 }
@@ -117,7 +125,7 @@ namespace Framework.AuthServer.Controllers
 
         [HttpPut]
         [Authorize(Policy = OperationNames.Activity + PermissionAccessTypes.WriteAccess)]
-        public async Task<GeneralResponse<object>> CreateActivityAsync(UpdateActivityInput input)
+        public async Task<GeneralResponse<object>> UpdateActivityAsync(UpdateActivityInput input)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {

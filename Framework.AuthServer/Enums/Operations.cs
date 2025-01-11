@@ -8,6 +8,8 @@
         SystemOperations,
         Activity,
         WorkItem,
-        Absence
+        Absence,
+        AbsenceAdmin,
+        Dashboard,
     }
 }
