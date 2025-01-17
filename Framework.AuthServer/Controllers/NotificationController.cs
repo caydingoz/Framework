@@ -3,6 +3,7 @@ using Framework.Application;
 using Framework.AuthServer.Consts;
 using Framework.AuthServer.Dtos.NotificationService.Input;
 using Framework.AuthServer.Dtos.NotificationService.Output;
+using Framework.AuthServer.Hubs;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
@@ -13,6 +14,7 @@ using Framework.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Framework.AuthServer.Controllers
 {
@@ -23,18 +25,21 @@ namespace Framework.AuthServer.Controllers
         private readonly Configuration Configuration;
         private readonly ILogger<NotificationController> Logger;
         private readonly IMapper Mapper;
+        private readonly IHubContext<NotificationHub> HubContext;
         private readonly IGenericRepository<Notification, int> NotificationRepository;
 
         public NotificationController(
             Configuration configuration,
             ILogger<NotificationController> logger,
             IMapper mapper,
+            IHubContext<NotificationHub> hubContext,
             IGenericRepository<Notification, int> notificationRepository
             )
         {
             Configuration = configuration;
             Logger = logger;
             Mapper = mapper;
+            HubContext = hubContext;
             NotificationRepository = notificationRepository;
         }
 
@@ -76,6 +81,12 @@ namespace Framework.AuthServer.Controllers
                 var notifications = Mapper.Map<ICollection<Notification>>(input.Notifications);
 
                 await NotificationRepository.InsertManyAsync(notifications);
+
+                var userIds = input.Notifications.Select(x => x.UserId);
+
+                var notificationTasks = userIds.Select(userId => HubContext.Clients.Group(userId.ToString()).SendAsync("ReceiveNotification", 1));
+
+                await Task.WhenAll(notificationTasks);
 
                 return true;
             });
