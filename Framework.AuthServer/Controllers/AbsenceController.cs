@@ -5,6 +5,7 @@ using Framework.AuthServer.Dtos.AbsenceService.Input;
 using Framework.AuthServer.Dtos.AbsenceService.Output;
 using Framework.AuthServer.Enums;
 using Framework.AuthServer.Helpers;
+using Framework.AuthServer.Hubs;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
@@ -15,6 +16,7 @@ using Framework.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Framework.AuthServer.Controllers
 {
@@ -27,13 +29,15 @@ namespace Framework.AuthServer.Controllers
         private readonly IMapper Mapper;
         private readonly IGenericRepository<User, Guid> UserRepository;
         private readonly IGenericRepository<Absence, int> AbsenceRepository;
+        private readonly IHubContext<NotificationHub> HubContext;
 
         public AbsenceController(
             Configuration configuration,
             ILogger<AbsenceController> logger,
             IMapper mapper,
             IGenericRepository<User, Guid> userRepository,
-            IGenericRepository<Absence, int> absenceRepository
+            IGenericRepository<Absence, int> absenceRepository,
+            IHubContext<NotificationHub> hubContext
             )
         {
             Configuration = configuration;
@@ -41,6 +45,7 @@ namespace Framework.AuthServer.Controllers
             Mapper = mapper;
             UserRepository = userRepository;
             AbsenceRepository = absenceRepository;
+            HubContext = hubContext;
         }
 
         [HttpGet("admin/requests")]
@@ -49,6 +54,9 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
+                var userId = GetUserId();
+                await HubContext.Clients.Group(userId).SendAsync("ReceiveNotification", 3);
+
                 var absences = await AbsenceRepository.WhereAsync(x => 
                     (type == null || x.Type == type) &&
                     (status == null || x.Status == status) &&

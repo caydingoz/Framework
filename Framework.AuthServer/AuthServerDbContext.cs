@@ -11,6 +11,7 @@ namespace Framework.AuthServer
         public DbSet<Permission> Permissions => Set<Permission>();
         public DbSet<Activity> Activities => Set<Activity>();
         public DbSet<WorkItem> WorkItems => Set<WorkItem>();
+        public DbSet<Notification> Notifications => Set<Notification>();
         public AuthServerDbContext(DbContextOptions options) : base(options)
         {
         }
@@ -24,6 +25,8 @@ namespace Framework.AuthServer
             builder.Entity<User>().HasMany(x => x.WorkItems).WithMany(x => x.Users);
             builder.Entity<User>().HasMany(x => x.Activities).WithOne(x => x.User);
             builder.Entity<Activity>().HasOne(x => x.WorkItem).WithMany(x => x.Activities);
+
+            builder.Entity<User>().HasMany(x => x.Notifications).WithOne(x => x.User);
         }
     }
 }

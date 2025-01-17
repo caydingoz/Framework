@@ -17,6 +17,7 @@ using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Repositories;
 using System.Reflection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Framework.AuthServer.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +45,7 @@ builder.Services.AddScoped<IGenericRepository<Permission, int>, EfCoreRepository
 builder.Services.AddScoped<IGenericRepository<WorkItem, int>, EfCoreRepositoryBase<WorkItem, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Activity, int>, EfCoreRepositoryBase<Activity, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Absence, int>, EfCoreRepositoryBase<Absence, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<Notification, int>, EfCoreRepositoryBase<Notification, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
 
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
@@ -71,12 +73,27 @@ if(configuration.JWT is not null)
             IssuerSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(configuration.JWT.Secret)),
             RequireExpirationTime = configuration.JWT.RequireExpirationTime,
         };
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/notification"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 }
 builder.Services.AddAuthorization(PermissionHelper.SetPolicies(Enum.GetNames(typeof(Operations))));
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
 builder.Services.AddCors(opt => opt.AddPolicy(name: "CorsPolicy", builder => builder.WithOrigins("http://localhost:3000").AllowAnyMethod().AllowAnyHeader().AllowCredentials()));
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
 
@@ -112,6 +129,7 @@ static void Migrate(IApplicationBuilder app)
 var app = builder.Build();
 
 app.UseRouting();
+app.MapHub<NotificationHub>("/hubs/notification");
 
 if (app.Environment.IsDevelopment())
 {

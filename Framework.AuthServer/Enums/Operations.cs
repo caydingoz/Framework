@@ -11,5 +11,6 @@
         Absence,
         AbsenceAdmin,
         Dashboard,
+        NotificationAdmin,
     }
 }
