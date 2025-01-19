@@ -12,6 +12,7 @@ namespace Framework.AuthServer
         public DbSet<Activity> Activities => Set<Activity>();
         public DbSet<WorkItem> WorkItems => Set<WorkItem>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
         public AuthServerDbContext(DbContextOptions options) : base(options)
         {
         }

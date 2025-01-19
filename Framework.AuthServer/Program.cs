@@ -18,6 +18,7 @@ using Framework.AuthServer.Repositories;
 using System.Reflection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Framework.AuthServer.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +39,9 @@ Console.WriteLine("Environment: " + builder.Environment.EnvironmentName);
 
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
+builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 builder.Services.AddSingleton<DefaultDataMigration>();
+
 builder.Services.AddScoped<IGenericRepository<User, Guid>, EfCoreRepositoryBase<User, AuthServerDbContext, Guid>>();
 builder.Services.AddScoped<IGenericRepository<Role, int>, EfCoreRepositoryBase<Role, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Permission, int>, EfCoreRepositoryBase<Permission, AuthServerDbContext, int>>();
@@ -47,10 +50,11 @@ builder.Services.AddScoped<IGenericRepository<Activity, int>, EfCoreRepositoryBa
 builder.Services.AddScoped<IGenericRepository<Absence, int>, EfCoreRepositoryBase<Absence, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Notification, int>, EfCoreRepositoryBase<Notification, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 
-if(configuration.JWT is not null)
+if (configuration.JWT is not null)
 {
     builder.Services.AddAuthentication(options =>
     {
@@ -80,7 +84,7 @@ if(configuration.JWT is not null)
                 var accessToken = context.Request.Query["access_token"];
 
                 var path = context.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/notification"))
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
                 {
                     context.Token = accessToken;
                 }
@@ -129,6 +133,7 @@ static void Migrate(IApplicationBuilder app)
 var app = builder.Build();
 
 app.UseRouting();
+app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notification");
 
 if (app.Environment.IsDevelopment())

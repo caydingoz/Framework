@@ -55,7 +55,7 @@ namespace Framework.AuthServer.Controllers
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserId();
-                await HubContext.Clients.Group(userId).SendAsync("ReceiveNotification", 3);
+                await HubContext.Clients.User(userId).SendAsync("ReceiveNotification", 3);
 
                 var absences = await AbsenceRepository.WhereAsync(x => 
                     (type == null || x.Type == type) &&

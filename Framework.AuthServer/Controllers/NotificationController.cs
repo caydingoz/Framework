@@ -84,7 +84,7 @@ namespace Framework.AuthServer.Controllers
 
                 var userIds = input.Notifications.Select(x => x.UserId);
 
-                var notificationTasks = userIds.Select(userId => HubContext.Clients.Group(userId.ToString()).SendAsync("ReceiveNotification", 1));
+                var notificationTasks = userIds.Select(userId => HubContext.Clients.User(userId.ToString()).SendAsync("ReceiveNotification", 1));
 
                 await Task.WhenAll(notificationTasks);
 
