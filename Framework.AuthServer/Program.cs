@@ -41,6 +41,7 @@ builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 builder.Services.AddSingleton<DefaultDataMigration>();
+builder.Services.AddSingleton<ConnectedUserService>();
 
 builder.Services.AddScoped<IGenericRepository<User, Guid>, EfCoreRepositoryBase<User, AuthServerDbContext, Guid>>();
 builder.Services.AddScoped<IGenericRepository<Role, int>, EfCoreRepositoryBase<Role, AuthServerDbContext, int>>();
