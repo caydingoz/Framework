@@ -12,6 +12,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Framework.MongoDB.Extensions;
 using Framework.Shared.Entities.Configurations;
+using MongoDB.Driver.Linq;
 
 namespace Framework.MongoDB
 {

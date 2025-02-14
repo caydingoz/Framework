@@ -56,7 +56,7 @@ namespace Framework.AuthServer.Controllers
 
                 var sortList = new List<Sort>
                 {
-                    new() { Name = nameof(ChatMessage.SentAt), Type = SortTypes.ASC }
+                    new() { Name = nameof(ChatMessage.SentAt), Type = SortTypes.DESC }
                 };
 
                 var chatMessages = await ChatMessageRepository.WhereAsync(x => 

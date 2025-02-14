@@ -3,7 +3,6 @@ using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Models;
 using Framework.EF;
 using Microsoft.EntityFrameworkCore;
-using System;
 
 namespace Framework.AuthServer.Repositories
 {
