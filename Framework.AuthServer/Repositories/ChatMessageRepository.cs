@@ -32,12 +32,13 @@ namespace Framework.AuthServer.Repositories
 
             foreach (var chatMessage in chatMessages.OrderByDescending(x => x.LastMessage.SentAt))
             {
-                if(chatMessage is not null)
+                if (chatMessage is not null)
                     res.Chats.Add(new ChatOverviewOutput
                     {
                         UserId = chatMessage.LastMessage.SenderId == userId ? chatMessage.LastMessage.ReceiverId : chatMessage.LastMessage.SenderId,
                         LastMessage = chatMessage.LastMessage.Content,
-                        UnReadMessageCount = chatMessage.UnReadMessageCount
+                        UnReadMessageCount = chatMessage.UnReadMessageCount,
+                        LastMessageTime = chatMessage.LastMessage.SentAt
                     });
             }
 

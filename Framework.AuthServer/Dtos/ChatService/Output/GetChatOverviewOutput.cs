@@ -10,6 +10,7 @@
         public string? Image { get; set; }
         public Guid UserId { get; set; }
         public required string LastMessage { get; set; }
+        public required DateTime LastMessageTime { get; set; }
         public int UnReadMessageCount { get; set; }
     }
 }
