@@ -1,10 +1,11 @@
 ﻿using Framework.AuthServer.Enums;
 using Framework.Domain.Entites;
+using Framework.Domain.Interfaces.Entities;
 using System.ComponentModel.DataAnnotations;
 
 namespace Framework.AuthServer.Models;
 
-public class User : Entity<Guid>
+public class User : Entity<Guid>, ILogicalDelete
 {
     [StringLength(100)]
     public required string Email { get; set; }

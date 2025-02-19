@@ -2,6 +2,6 @@
 {
     public interface ILogicalDelete
     {
-        public bool Deleted { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

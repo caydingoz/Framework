@@ -16,6 +16,7 @@ using MongoDB.Driver.Linq;
 
 namespace Framework.MongoDB
 {
+    //includeLogicalDeleted not implemented.
     public class MongoDbRepositoryBase<T, U> : IGenericRepositoryWithNonRelation<T, U> where T : class, IBaseEntity<U>
     {
         private IMongoDatabase? Database;
@@ -217,7 +218,7 @@ namespace Framework.MongoDB
             var entity = await Collection.FindAsync(x => x.Id.Equals(id), cancellationToken: cancellationToken) ?? throw new Exception("Not found an entity with given id!");
 
             if (IsLogicalDelete)
-                await Collection.FindOneAndUpdateAsync(x => x.Id.Equals(id), Builders<T>.Update.Set(x => (x as ILogicalDelete).Deleted, true), cancellationToken: cancellationToken);
+                await Collection.FindOneAndUpdateAsync(x => x.Id.Equals(id), Builders<T>.Update.Set(x => (x as ILogicalDelete).IsDeleted, true), cancellationToken: cancellationToken);
             else
                 await Collection.DeleteOneAsync(x => x.Id.Equals(id), cancellationToken: cancellationToken);
 
@@ -238,7 +239,7 @@ namespace Framework.MongoDB
         public async Task DeleteManyAsync(IEnumerable<U> ids, IUnitOfWorkEvents? unitOfWork = null, CancellationToken cancellationToken = default)
         {
             if (IsLogicalDelete)
-                await Collection.FindOneAndUpdateAsync(x => ids.Contains(x.Id), Builders<T>.Update.Set(x => (x as ILogicalDelete).Deleted, true), cancellationToken: cancellationToken);
+                await Collection.FindOneAndUpdateAsync(x => ids.Contains(x.Id), Builders<T>.Update.Set(x => (x as ILogicalDelete).IsDeleted, true), cancellationToken: cancellationToken);
             else
                 await Collection.DeleteManyAsync(x => ids.Contains(x.Id), cancellationToken: cancellationToken);
 
@@ -264,7 +265,7 @@ namespace Framework.MongoDB
 #pragma warning disable CS8604 // Possible null reference argument.
             var data = JsonSerializer.Deserialize<T>(value);
 #pragma warning restore CS8604 // Possible null reference argument.
-            if (IsLogicalDelete && !includeLogicalDeleted && (data as ILogicalDelete).Deleted)
+            if (IsLogicalDelete && !includeLogicalDeleted && (data as ILogicalDelete).IsDeleted)
                 return null;
             return data;
         }
@@ -288,8 +289,8 @@ namespace Framework.MongoDB
                         dataList.Add(deserializedObject);
                 }
             }
-            if (IsLogicalDelete)
-                return dataList.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.Deleted)}={includeLogicalDeleted.ToString().ToLower()}");
+            if (IsLogicalDelete && !includeLogicalDeleted)
+                return dataList.AsQueryable().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.IsDeleted)}={includeLogicalDeleted.ToString().ToLower()}");
             return dataList.AsQueryable();
         }
         private static async Task UpsertCacheAsync(IEnumerable<T> entities)

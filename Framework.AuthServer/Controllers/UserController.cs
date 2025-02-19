@@ -56,7 +56,7 @@ namespace Framework.AuthServer.Controllers
                                     (filterName == null || x.FirstName.Contains(filterName) || x.LastName.Contains(filterName) || x.Email.Contains(filterName) || x.PhoneNumber.Contains(filterName))
                                     && (status == null || x.Status == status)
                                     && (roleIds == null || roleIds.All(roleId => x.Roles.Any(y => y.Id == roleId)))
-                                    , includes: x => x.Roles, readOnly: true, pagination: pagination, sorts: [sort]);
+                                    , includes: x => x.Roles, readOnly: true, pagination: pagination, sorts: [sort], includeLogicalDeleted: true);
 
                 var res = new GetUsersOutput();
 

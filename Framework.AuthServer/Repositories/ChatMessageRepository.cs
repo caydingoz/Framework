@@ -15,6 +15,7 @@ namespace Framework.AuthServer.Repositories
         public async Task<GetChatOverviewOutput> GetChatOverviewAsync(Guid userId, int page, int count)
         {
             var chatMessages = await DbContext.ChatMessages
+                .AsNoTracking()
                 .Where(x => x.SenderId == userId || x.ReceiverId == userId)
                 .GroupBy(x => x.SenderId == userId ? x.ReceiverId : x.SenderId)
                 .Select(g => new

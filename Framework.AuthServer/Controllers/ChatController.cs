@@ -72,6 +72,36 @@ namespace Framework.AuthServer.Controllers
                 return res;
             });
         }
+        [HttpGet("users")]
+        [Authorize]
+        public async Task<GeneralResponse<GetChatAllUsersOutput>> GetChatAllUsersAsync()
+        {
+            return await WithLoggingGeneralResponseAsync(async () =>
+            {
+                var userId = GetUserIdGuid();
+                var res = new GetChatAllUsersOutput();
+
+                var users = await UserRepository.WhereWithSelectAsync(x => x.Id != userId, selector: x => new { x.Id, x.FirstName, x.LastName, x.Image }, readOnly: true);
+
+                var chatOverview = await ChatMessageRepository.GetChatOverviewAsync(userId, 0, 600);
+
+                var chatUserIds = chatOverview.Chats.Select(x => x.UserId);
+
+                var newChatUsers = users.Where(x => !chatUserIds.Contains(x.Id));
+
+                foreach (var user in newChatUsers)
+                {
+                    res.Users.Add(new ChatUserOutput
+                    {
+                        UserId = user.Id,
+                        Name = user.FirstName + " " + user.LastName,
+                        Image = user.Image,
+                    });
+                }
+
+                return res;
+            });
+        }
 
         [HttpGet("overview")]
         [Authorize]
@@ -86,7 +116,7 @@ namespace Framework.AuthServer.Controllers
 
                 var chatUserIds = res.Chats.Select(x => x.UserId);
 
-                var users = await UserRepository.WhereAsync(x => chatUserIds.Contains(x.Id));
+                var users = await UserRepository.WhereAsync(x => chatUserIds.Contains(x.Id), readOnly: true);
                 var userDictionary = users.ToDictionary(x => x.Id, x => x);
 
                 foreach (var chat in res.Chats)
@@ -109,7 +139,7 @@ namespace Framework.AuthServer.Controllers
         [HttpPost("message")]
         public async Task<GeneralResponse<int>> SendChatMessageAsync(SendChatMessageInput input)
         {
-            return await WithLoggingGeneralResponseAsync<int>(async () =>
+            return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserIdGuid();
                 var userIdStr = GetUserId();

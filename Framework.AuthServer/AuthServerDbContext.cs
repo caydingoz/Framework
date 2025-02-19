@@ -19,7 +19,8 @@ namespace Framework.AuthServer
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
-            
+            builder.Entity<User>().HasQueryFilter(x => !x.IsDeleted);
+
             builder.Entity<User>().HasMany(x => x.Roles).WithMany(x => x.Users);
             builder.Entity<Role>().OwnsMany(x => x.Permissions);
 
