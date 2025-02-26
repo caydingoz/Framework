@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Framework.AuthServer.Dtos.NotificationService.Output;
+using Framework.AuthServer.Dtos.NotificationService.Input;
 using Framework.AuthServer.Models;
 
 namespace Framework.AuthServer.Mappers
@@ -8,8 +8,7 @@ namespace Framework.AuthServer.Mappers
     {
         public NotificationMapper()
         {
-            CreateMap<NotificationDTO, Notification>().ForMember(dest => dest.Id, opt => opt.Ignore());
-            CreateMap<Notification, NotificationDTO>();
+            CreateMap<CreateNotificationInput, Notification>();
         }
     }
 }

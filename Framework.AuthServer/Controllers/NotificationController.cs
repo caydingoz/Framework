@@ -4,13 +4,12 @@ using Framework.AuthServer.Consts;
 using Framework.AuthServer.Dtos.NotificationService.Input;
 using Framework.AuthServer.Dtos.NotificationService.Output;
 using Framework.AuthServer.Hubs;
+using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
 using Framework.Shared.Dtos;
-using Framework.Shared.Entities;
 using Framework.Shared.Entities.Configurations;
-using Framework.Shared.Enums;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -26,14 +25,16 @@ namespace Framework.AuthServer.Controllers
         private readonly ILogger<NotificationController> Logger;
         private readonly IMapper Mapper;
         private readonly IHubContext<NotificationHub> HubContext;
-        private readonly IGenericRepository<Notification, int> NotificationRepository;
+        private readonly INotificationRepository NotificationRepository;
+        private readonly IGenericRepository<NotificationUser, int> NotificationUserRepository;
 
         public NotificationController(
             Configuration configuration,
             ILogger<NotificationController> logger,
             IMapper mapper,
             IHubContext<NotificationHub> hubContext,
-            IGenericRepository<Notification, int> notificationRepository
+            INotificationRepository notificationRepository,
+            IGenericRepository<NotificationUser, int> notificationUserRepository
             )
         {
             Configuration = configuration;
@@ -41,31 +42,24 @@ namespace Framework.AuthServer.Controllers
             Mapper = mapper;
             HubContext = hubContext;
             NotificationRepository = notificationRepository;
+            NotificationUserRepository = notificationUserRepository;
         }
 
-        [HttpGet]
+        [HttpGet("user")]
         [Authorize]
-        public async Task<GeneralResponse<GetNotificationsOutput>> GetNotificationsAsync([FromQuery] int page, [FromQuery] int count)
+        public async Task<GeneralResponse<GetNotificationsOutput>> GetNotificationsForUserAsync([FromQuery] int page, [FromQuery] int count)
         {
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserIdGuid();
 
-                var sortList = new List<Sort>
-                {
-                    new() { Name = nameof(Notification.IsRead), Type = SortTypes.ASC },
-                    new() { Name = nameof(Notification.CreatedAt), Type = SortTypes.DESC }
-                };
-
-                var pagination = new Pagination { Page = page, Count = count };
-
-                var notifications = await NotificationRepository.WhereAsync(x => x.UserId == userId, readOnly: true, pagination: pagination, sorts: sortList);
+                var notifications = await NotificationRepository.GetNotificationsForUserAsync(userId, page, count);
 
                 var res = new GetNotificationsOutput
                 {
-                    Notifications = Mapper.Map<ICollection<NotificationDTO>>(notifications),
-
-                    TotalCount = await NotificationRepository.CountAsync(x => x.UserId == userId)
+                    Notifications = notifications,
+                    UnreadCount = await NotificationUserRepository.CountAsync(x => x.UserId == userId && x.IsRead == false),
+                    TotalCount = await NotificationUserRepository.CountAsync(x => x.UserId == userId)
                 };
 
                 return res;
@@ -78,13 +72,25 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                var notifications = Mapper.Map<ICollection<Notification>>(input.Notifications);
+                input.UserIds = new HashSet<Guid>(input.UserIds).ToList();
 
-                await NotificationRepository.InsertManyAsync(notifications);
+                var notification = Mapper.Map<Notification>(input);
+                notification.NotificationUsers = [];
 
-                var userIds = input.Notifications.Select(x => x.UserId);
+                foreach (var userId in input.UserIds)
+                {
+                    var date = DateTime.UtcNow;
+                    notification.NotificationUsers.Add(new NotificationUser
+                    {
+                        UserId = userId,
+                        CreatedAt = date,
+                        UpdatedAt = date
+                    });
+                }
 
-                var notificationTasks = userIds.Select(userId => HubContext.Clients.User(userId.ToString()).SendAsync("ReceiveNotification", 1));
+                await NotificationRepository.InsertOneAsync(notification);
+
+                var notificationTasks = input.UserIds.Select(userId => HubContext.Clients.User(userId.ToString()).SendAsync("ReceiveNotification", 1));
 
                 await Task.WhenAll(notificationTasks);
 
@@ -94,18 +100,24 @@ namespace Framework.AuthServer.Controllers
 
         [HttpPut("read")]
         [Authorize]
-        public async Task<GeneralResponse<object>> ReadNotificationAsync([FromQuery] int id)
+        public async Task<GeneralResponse<object>> ReadNotificationAsync([FromQuery] int[] ids)
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
+                var idList = new HashSet<int>(ids).ToList();
+
                 var userId = GetUserIdGuid();
 
-                var notification = await NotificationRepository.FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId) ?? throw new Exception("Notification not found! ID: " + id);
+                var notificationUsers = await NotificationUserRepository.WhereAsync(x => idList.Contains(x.NotificationId) && x.UserId == userId);
 
-                notification.IsRead = true;
-                notification.ReadAt = DateTime.Now;
+                foreach (var notificationUser in notificationUsers)
+                {
+                    notificationUser.IsRead = true;
+                }
 
-                await NotificationRepository.UpdateOneAsync(notification);
+                await NotificationUserRepository.UpdateManyAsync(notificationUsers);
+
+                await HubContext.Clients.User(userId.ToString()).SendAsync("ReadNotification", notificationUsers.Select(x => x.NotificationId));
 
                 return true;
             });

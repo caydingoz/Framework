@@ -12,6 +12,7 @@ namespace Framework.AuthServer
         public DbSet<Activity> Activities => Set<Activity>();
         public DbSet<WorkItem> WorkItems => Set<WorkItem>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<NotificationUser> NotificationUsers => Set<NotificationUser>();
         public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
         public AuthServerDbContext(DbContextOptions options) : base(options)
         {
@@ -28,7 +29,8 @@ namespace Framework.AuthServer
             builder.Entity<User>().HasMany(x => x.Activities).WithOne(x => x.User);
             builder.Entity<Activity>().HasOne(x => x.WorkItem).WithMany(x => x.Activities);
 
-            builder.Entity<User>().HasMany(x => x.Notifications).WithOne(x => x.User);
+            builder.Entity<User>().HasMany(x => x.NotificationUsers).WithOne(x => x.User);
+            builder.Entity<Notification>().HasMany(x => x.NotificationUsers).WithOne(x => x.Notification);
         }
     }
 }

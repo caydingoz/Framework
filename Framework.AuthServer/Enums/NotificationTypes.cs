@@ -4,6 +4,5 @@
     {
         System,
         Info,
-        Chat,
     }
 }

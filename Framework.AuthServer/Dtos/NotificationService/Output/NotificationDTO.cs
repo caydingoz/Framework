@@ -12,7 +12,6 @@ namespace Framework.AuthServer.Dtos.NotificationService.Output
         public required string Message { get; set; }
         public NotificationTypes Type { get; set; }
         public bool IsRead { get; set; }
-        public Guid UserId { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
-
 }

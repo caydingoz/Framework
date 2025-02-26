@@ -49,7 +49,8 @@ builder.Services.AddScoped<IGenericRepository<Permission, int>, EfCoreRepository
 builder.Services.AddScoped<IGenericRepository<WorkItem, int>, EfCoreRepositoryBase<WorkItem, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Activity, int>, EfCoreRepositoryBase<Activity, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Absence, int>, EfCoreRepositoryBase<Absence, AuthServerDbContext, int>>();
-builder.Services.AddScoped<IGenericRepository<Notification, int>, EfCoreRepositoryBase<Notification, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<NotificationUser, int>, EfCoreRepositoryBase<NotificationUser, AuthServerDbContext, int>>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 

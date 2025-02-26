@@ -30,5 +30,5 @@ public class User : Entity<Guid>, ILogicalDelete
     public ICollection<Activity> Activities { get; set; } = [];
     public ICollection<WorkItem> WorkItems { get; set; } = [];
     public ICollection<Absence> Absences { get; set; } = [];
-    public ICollection<Notification> Notifications { get; set; } = [];
+    public ICollection<NotificationUser> NotificationUsers { get; set; } = [];
 }

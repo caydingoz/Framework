@@ -11,10 +11,6 @@ namespace Framework.AuthServer.Models
         [StringLength(500)]
         public required string Message { get; set; }
         public NotificationTypes Type { get; set; }
-        public bool IsRead { get; set; }
-        public DateTime? ReadAt { get; set; }
-        public Guid UserId { get; set; }
-        public User User { get; set; }
+        public ICollection<NotificationUser> NotificationUsers { get; set; }
     }
-
 }
