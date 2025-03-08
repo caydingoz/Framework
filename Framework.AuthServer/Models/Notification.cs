@@ -12,5 +12,7 @@ namespace Framework.AuthServer.Models
         public required string Message { get; set; }
         public NotificationTypes Type { get; set; }
         public ICollection<NotificationUser> NotificationUsers { get; set; }
+        [StringLength(500)]
+        public string? Url { get; set; }
     }
 }

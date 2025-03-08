@@ -27,7 +27,8 @@ namespace Framework.AuthServer.Repositories
                     Title = nu.Notification.Title,
                     CreatedAt = nu.Notification.CreatedAt,
                     Type = nu.Notification.Type,
-                    IsRead = nu.UserNotification != null && nu.UserNotification.IsRead
+                    IsRead = nu.UserNotification != null && nu.UserNotification.IsRead,
+                    Url = nu.Notification.Url
                 })
                 .OrderBy(n => n.IsRead)
                 .ThenByDescending(n => n.CreatedAt)

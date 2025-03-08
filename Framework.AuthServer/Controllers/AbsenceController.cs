@@ -6,6 +6,7 @@ using Framework.AuthServer.Dtos.AbsenceService.Output;
 using Framework.AuthServer.Enums;
 using Framework.AuthServer.Helpers;
 using Framework.AuthServer.Hubs;
+using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
@@ -29,6 +30,7 @@ namespace Framework.AuthServer.Controllers
         private readonly IMapper Mapper;
         private readonly IGenericRepository<User, Guid> UserRepository;
         private readonly IGenericRepository<Absence, int> AbsenceRepository;
+        private readonly INotificationRepository NotificationRepository;
         private readonly IHubContext<NotificationHub> HubContext;
 
         public AbsenceController(
@@ -37,6 +39,7 @@ namespace Framework.AuthServer.Controllers
             IMapper mapper,
             IGenericRepository<User, Guid> userRepository,
             IGenericRepository<Absence, int> absenceRepository,
+            INotificationRepository notificationRepository,
             IHubContext<NotificationHub> hubContext
             )
         {
@@ -45,6 +48,7 @@ namespace Framework.AuthServer.Controllers
             Mapper = mapper;
             UserRepository = userRepository;
             AbsenceRepository = absenceRepository;
+            NotificationRepository = notificationRepository;
             HubContext = hubContext;
         }
 
@@ -55,7 +59,6 @@ namespace Framework.AuthServer.Controllers
             return await WithLoggingGeneralResponseAsync(async () =>
             {
                 var userId = GetUserId();
-                await HubContext.Clients.User(userId).SendAsync("ReceiveNotification", 3);
 
                 var absences = await AbsenceRepository.WhereAsync(x => 
                     (type == null || x.Type == type) &&
@@ -173,6 +176,9 @@ namespace Framework.AuthServer.Controllers
 
                 var user = await UserRepository.GetByIdAsync(userId) ?? throw new Exception("User not found.");
 
+                if (input.StartTime.DayOfWeek == DayOfWeek.Saturday || input.StartTime.DayOfWeek == DayOfWeek.Sunday)
+                    throw new Exception("Start time cannot be on a weekend.");
+
                 if (input.StartTime >= input.EndTime)
                     throw new Exception("Start time must be earlier than the end time.");
 
@@ -220,6 +226,26 @@ namespace Framework.AuthServer.Controllers
                     absenceUser.TotalAbsenceEntitlement -= absence.Duration;
 
                 await UserRepository.UpdateOneAsync(absenceUser);
+
+                var notification = new Notification 
+                {
+                    Message = $"Your leave request has been {(input.Status == AbsenceStatus.Approved ? "approved" : "rejected")}.",
+                    Title = "Leave Requests",
+                    Url = "/absence-management/requests/user",
+                    Type = NotificationTypes.Info,
+                    NotificationUsers = [],
+                };
+
+                var date = DateTime.UtcNow;
+                notification.NotificationUsers.Add(new NotificationUser
+                {
+                    UserId = absence.UserId,
+                    CreatedAt = date,
+                    UpdatedAt = date
+                });
+
+                await NotificationRepository.InsertOneAsync(notification);
+                await HubContext.Clients.User(absence.UserId.ToString()).SendAsync("ReceiveNotification", 1);
 
                 return true;
             });
