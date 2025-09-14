@@ -3,6 +3,7 @@ using Framework.AuthServer.Consts;
 using Framework.AuthServer.Dtos.RoleService.Input;
 using Framework.AuthServer.Dtos.RoleService.Output;
 using Framework.AuthServer.Enums;
+using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
 using Framework.Shared.Consts;
@@ -11,9 +12,11 @@ using Framework.Shared.Entities;
 using Framework.Shared.Entities.Configurations;
 using Framework.Shared.Enums;
 using Framework.Shared.Extensions;
+using Framework.Shared.Helpers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace Framework.AuthServer.Controllers
 {
@@ -26,18 +29,21 @@ namespace Framework.AuthServer.Controllers
 
         private readonly IGenericRepository<Role, int> RoleRepository;
         private readonly IGenericRepository<Permission, int> PermissionRepository;
+        private readonly IUserTokenRepository UserTokenRepository;
 
         public RoleController(
             Configuration configuration,
             ILogger<RoleController> logger,
             IGenericRepository<Role, int> roleRepository,
-            IGenericRepository<Permission, int> permissionRepository
+            IGenericRepository<Permission, int> permissionRepository,
+            IUserTokenRepository userTokenRepository
             )
         {
             Configuration = configuration;
             Logger = logger;
             RoleRepository = roleRepository;
             PermissionRepository = permissionRepository;
+            UserTokenRepository = userTokenRepository;
         }
 
         [HttpGet]
@@ -169,7 +175,7 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
+                var role = await RoleRepository.GetByIdAsync(roleId, includes: x => new List<object> { x.Permissions, x.Users }) ?? throw new Exception("Role is not exist!");
 
                 if (role.Name.Equals(Roles.ADMINISTRATOR_ROLE, StringComparison.CurrentCultureIgnoreCase))
                     throw new Exception("Changes to the admin role are not allowed!");
@@ -187,6 +193,21 @@ namespace Framework.AuthServer.Controllers
                 }
 
                 await RoleRepository.UpdateOneAsync(role);
+
+                var userIds = role.Users.Select(x => x.Id).ToList();
+
+                var userTokens = await UserTokenRepository.WhereAsync(x => userIds.Contains(x.UserId));
+
+                var handler = new JwtSecurityTokenHandler();
+
+                foreach (var userToken in userTokens)
+                {
+                    var jwtToken = handler.ReadJwtToken(userToken.AccessToken);
+                    var jti = jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Jti).Value;
+
+                    var db = RedisConnectorHelper.Db;
+                    await db.StringSetAsync($"blacklist:{jti}", "1", TimeSpan.FromMinutes(Configuration.JWT?.TokenValidityInMinutes ?? 6000));
+                }
 
                 return true;
             });

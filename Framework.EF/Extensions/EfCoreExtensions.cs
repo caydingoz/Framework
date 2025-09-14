@@ -5,7 +5,7 @@ namespace Framework.EF.Extensions
 {
     public static class EfCoreExtensions
     {
-        private static List<string> IncludedEntityProps = new();
+        private static List<string> IncludedEntityProps = [];
         public static IQueryable<T> MultipleInclude<T>(this IQueryable<T> query, Expression<Func<T, object>>? include = null) where T : class
         {
             if (include is not null)

@@ -19,6 +19,7 @@ using System.Reflection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Framework.AuthServer.Hubs;
 using Microsoft.AspNetCore.SignalR;
+using Framework.Shared.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,10 +87,10 @@ if (configuration.JWT is not null)
                 var accessToken = context.Request.Query["access_token"];
 
                 var path = context.HttpContext.Request.Path;
+
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
-                {
                     context.Token = accessToken;
-                }
+
                 return Task.CompletedTask;
             }
         };
@@ -115,23 +116,6 @@ if (configuration.EF is not null)
     }, ServiceLifetime.Scoped);
 }
 
-static void Migrate(IApplicationBuilder app)
-{
-    using var scope = app.ApplicationServices.CreateScope();
-    var serviceProvider = scope.ServiceProvider;
-    try
-    {
-        var migrator = new DefaultDataMigration(serviceProvider);
-        migrator.EnsureMigrationAsync().Wait();
-    }
-    catch (Exception ex)
-    {
-        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
-        throw new Exception("An error occurred while migrating the database. Err: " + ex.Message);
-    }
-}
-
 var app = builder.Build();
 
 app.UseRouting();
@@ -150,6 +134,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseAuthentication();
+app.UseMiddleware<AuthMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
@@ -157,3 +142,19 @@ app.MapControllers();
 Migrate(app);
 
 app.Run();
+static void Migrate(IApplicationBuilder app)
+{
+    using var scope = app.ApplicationServices.CreateScope();
+    var serviceProvider = scope.ServiceProvider;
+    try
+    {
+        var migrator = new DefaultDataMigration(serviceProvider);
+        migrator.EnsureMigrationAsync().Wait();
+    }
+    catch (Exception ex)
+    {
+        var logger = serviceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while migrating the database.");
+        throw new Exception("An error occurred while migrating the database. Err: " + ex.Message);
+    }
+}

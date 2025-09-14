@@ -48,9 +48,9 @@ namespace Framework.AuthServer.Controllers
                     throw new Exception("Invalid client request! (input null)");
 
                 var user = await UserRepository.SingleOrDefaultAsync(x => 
-                                                    x.Email == input.Email, 
+                                                    x.Email == input.Email && x.Password == input.Password, 
                                                     includes: x => x.Roles.Select(y => y.Permissions)
-                                                ) ?? throw new Exception("Not found a user with given email!");
+                                                ) ?? throw new Exception("Not found a user with given email and password!");
                 
                 var permissions = user.Roles.SelectMany(role => role.Permissions).Distinct();
 
