@@ -97,6 +97,26 @@ namespace Framework.AuthServer.Controllers
                 if (await RoleRepository.AnyAsync(x => input.Ids.Contains(x.Id) && x.Name == "ADMINISTRATOR"))
                     throw new Exception("Changes to the admin role are not allowed!");
 
+                foreach (var id in input.Ids)
+                {
+                    var role = await RoleRepository.GetByIdAsync(id, includes: x => new List<object> { x.Permissions, x.Users }) ?? throw new Exception("Role is not exist!");
+
+                    var userIds = role.Users.Select(x => x.Id).ToList();
+
+                    var userTokens = await UserTokenRepository.WhereAsync(x => userIds.Contains(x.UserId));
+
+                    var handler = new JwtSecurityTokenHandler();
+
+                    foreach (var userToken in userTokens)
+                    {
+                        var jwtToken = handler.ReadJwtToken(userToken.AccessToken);
+                        var jti = jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Jti).Value;
+
+                        var db = RedisConnectorHelper.Db;
+                        await db.StringSetAsync($"blacklist:{jti}", "1", TimeSpan.FromMinutes(Configuration.JWT?.TokenValidityInMinutes ?? 6000));
+                    }
+                }
+
                 await RoleRepository.DeleteManyAsync(input.Ids);
 
                 return true;
@@ -146,7 +166,7 @@ namespace Framework.AuthServer.Controllers
         {
             return await WithLoggingGeneralResponseAsync<object>(async () =>
             {
-                var role = await RoleRepository.GetByIdAsync(roleId, includes: x => x.Permissions) ?? throw new Exception("Role is not exist!");
+                var role = await RoleRepository.GetByIdAsync(roleId, includes: x => new List<object> { x.Permissions, x.Users }) ?? throw new Exception("Role is not exist!");
 
                 var existPermissionNames = role.Permissions.Select(x => x.Operation);
 
@@ -164,6 +184,21 @@ namespace Framework.AuthServer.Controllers
                 }
 
                 await RoleRepository.UpdateOneAsync(role);
+
+                var userIds = role.Users.Select(x => x.Id).ToList();
+
+                var userTokens = await UserTokenRepository.WhereAsync(x => userIds.Contains(x.UserId));
+
+                var handler = new JwtSecurityTokenHandler();
+
+                foreach (var userToken in userTokens)
+                {
+                    var jwtToken = handler.ReadJwtToken(userToken.AccessToken);
+                    var jti = jwtToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Jti).Value;
+
+                    var db = RedisConnectorHelper.Db;
+                    await db.StringSetAsync($"blacklist:{jti}", "1", TimeSpan.FromMinutes(Configuration.JWT?.TokenValidityInMinutes ?? 6000));
+                }
 
                 return true;
             });
