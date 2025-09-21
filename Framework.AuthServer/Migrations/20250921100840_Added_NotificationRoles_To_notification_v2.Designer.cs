@@ -4,6 +4,7 @@ using Framework.AuthServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Framework.AuthServer.Migrations
 {
     [DbContext(typeof(AuthServerDbContext))]
-    partial class AuthServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250921100840_Added_NotificationRoles_To_notification_v2")]
+    partial class Added_NotificationRoles_To_notification_v2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

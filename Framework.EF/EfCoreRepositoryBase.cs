@@ -289,7 +289,7 @@ namespace Framework.EF
         private IQueryable<T> GetDbSetWithFiltered(bool includeLogicalDeleted = false)
         {
             if (IsLogicalDelete)
-                return DbContext.Set<T>().WhereIf(IsLogicalDelete, $"{nameof(ILogicalDelete.IsDeleted)}={includeLogicalDeleted.ToString().ToLower()}");
+                return DbContext.Set<T>().IgnoreQueryFilters();
             return DbContext.Set<T>();
         }
         private IQueryable<T> GetDbSetWithFiltered(bool asNoTracking = false, bool includeLogicalDeleted = false, Expression<Func<T, object>>? includes = null)

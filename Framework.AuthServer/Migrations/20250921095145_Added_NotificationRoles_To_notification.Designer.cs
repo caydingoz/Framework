@@ -4,6 +4,7 @@ using Framework.AuthServer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Framework.AuthServer.Migrations
 {
     [DbContext(typeof(AuthServerDbContext))]
-    partial class AuthServerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250921095145_Added_NotificationRoles_To_notification")]
+    partial class Added_NotificationRoles_To_notification
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -150,9 +153,6 @@ namespace Framework.AuthServer.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Message")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -201,8 +201,6 @@ namespace Framework.AuthServer.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NotificationId");
-
-                    b.HasIndex("RoleId");
 
                     b.ToTable("NotificationRole");
                 });
@@ -462,15 +460,7 @@ namespace Framework.AuthServer.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Framework.AuthServer.Models.Role", "Role")
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Notification");
-
-                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("Framework.AuthServer.Models.NotificationUser", b =>

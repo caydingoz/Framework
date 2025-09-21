@@ -31,6 +31,7 @@ namespace Framework.AuthServer
 
             builder.Entity<User>().HasMany(x => x.NotificationUsers).WithOne(x => x.User);
             builder.Entity<Notification>().HasMany(x => x.NotificationUsers).WithOne(x => x.Notification);
+            builder.Entity<Notification>().HasMany(x => x.NotificationRoles).WithOne(x => x.Notification);
         }
     }
 }

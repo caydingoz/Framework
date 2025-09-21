@@ -10,6 +10,6 @@ namespace Framework.AuthServer.Dtos.NotificationService.Input
         [StringLength(500)]
         public required string Message { get; set; }
         public NotificationTypes Type { get; set; }
-        public ICollection<Guid> UserIds { get; set; }
+        public ICollection<int> RoleIds { get; set; }
     }
 }
