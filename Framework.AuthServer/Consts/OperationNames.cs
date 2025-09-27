@@ -12,5 +12,8 @@ namespace Framework.AuthServer.Consts
         public const string WorkItem = nameof(Operations.WorkItem);
         public const string Absence = nameof(Operations.Absence);
         public const string NotificationAdmin = nameof(Operations.NotificationAdmin);
+        public const string Job = nameof(Operations.Job);
+        public const string Applicant = nameof(Operations.Applicant);
+        public const string Report = nameof(Operations.Report);
     }
 }

@@ -40,6 +40,7 @@ Console.WriteLine("Environment: " + builder.Environment.EnvironmentName);
 
 builder.Services.AddSingleton(configuration);
 builder.Services.AddScoped<ITokenHandlerService, TokenHandlerService>(); 
+builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddSingleton<IUserIdProvider, CustomUserIdProvider>();
 builder.Services.AddSingleton<DefaultDataMigration>();
 builder.Services.AddSingleton<ConnectedUserService>();
@@ -51,9 +52,16 @@ builder.Services.AddScoped<IGenericRepository<WorkItem, int>, EfCoreRepositoryBa
 builder.Services.AddScoped<IGenericRepository<Activity, int>, EfCoreRepositoryBase<Activity, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<Absence, int>, EfCoreRepositoryBase<Absence, AuthServerDbContext, int>>();
 builder.Services.AddScoped<IGenericRepository<NotificationUser, int>, EfCoreRepositoryBase<NotificationUser, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<Job, int>, EfCoreRepositoryBase<Job, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<Applicant, int>, EfCoreRepositoryBase<Applicant, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<ApplicantDocument, int>, EfCoreRepositoryBase<ApplicantDocument, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<Interview, int>, EfCoreRepositoryBase<Interview, AuthServerDbContext, int>>();
+builder.Services.AddScoped<IGenericRepository<Scorecard, int>, EfCoreRepositoryBase<Scorecard, AuthServerDbContext, int>>();
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+builder.Services.AddScoped<IJobRepository, JobRepository>();
+builder.Services.AddScoped<IApplicantRepository, ApplicantRepository>();
 
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 

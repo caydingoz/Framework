@@ -12,5 +12,8 @@
         AbsenceAdmin,
         Dashboard,
         NotificationAdmin,
+        Job,
+        Applicant,
+        Report,
     }
 }
