@@ -60,8 +60,6 @@ builder.Services.AddScoped<IGenericRepository<Scorecard, int>, EfCoreRepositoryB
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserTokenRepository, UserTokenRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
-builder.Services.AddScoped<IJobRepository, JobRepository>();
-builder.Services.AddScoped<IApplicantRepository, ApplicantRepository>();
 
 builder.Services.AddScoped<IGenericRepositoryWithNonRelation<Log, string>, MongoDbRepositoryBase<Log, string>>();
 

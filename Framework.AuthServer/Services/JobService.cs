@@ -1,27 +1,26 @@
 using AutoMapper;
 using Framework.AuthServer.Dtos.JobService.Input;
 using Framework.AuthServer.Dtos.JobService.Output;
-using Framework.AuthServer.Interfaces.Repositories;
 using Framework.AuthServer.Interfaces.Services;
 using Framework.AuthServer.Models;
 using Framework.Domain.Interfaces.Repositories;
-using Framework.Shared.Dtos;
-using Microsoft.AspNetCore.Http;
+using Framework.Shared.Entities;
+using Framework.Shared.Enums;
 
 namespace Framework.AuthServer.Services;
 
 public class JobService : IJobService
 {
-    private readonly IJobRepository _jobRepository;
-    private readonly IApplicantRepository _applicantRepository;
+    private readonly IGenericRepository<Job, int> _jobRepository;
+    private readonly IGenericRepository<Applicant, int> _applicantRepository;
     private readonly IGenericRepository<ApplicantDocument, int> _applicantDocumentRepository;
     private readonly IGenericRepository<Interview, int> _interviewRepository;
     private readonly IGenericRepository<Scorecard, int> _scorecardRepository;
     private readonly IMapper _mapper;
 
     public JobService(
-        IJobRepository jobRepository,
-        IApplicantRepository applicantRepository,
+        IGenericRepository<Job, int> jobRepository,
+        IGenericRepository<Applicant, int> applicantRepository,
         IGenericRepository<ApplicantDocument, int> applicantDocumentRepository,
         IGenericRepository<Interview, int> interviewRepository,
         IGenericRepository<Scorecard, int> scorecardRepository,
@@ -37,7 +36,16 @@ public class JobService : IJobService
 
     public async Task<GetJobsOutput> GetJobsAsync(int page, int count, string? searchTerm = null, bool? active = null)
     {
-        var jobs = await _jobRepository.GetJobsWithApplicantCountAsync(page, count, searchTerm, active);
+        var sort = new Sort { Name = "CreatedAt", Type = SortTypes.DESC };
+        var pagination = new Pagination { Page = page, Count = count };
+
+        var jobs = await _jobRepository.WhereAsync(j =>
+            (string.IsNullOrEmpty(searchTerm) || j.Title.Contains(searchTerm) || j.Department.Contains(searchTerm) || j.Location.Contains(searchTerm)) &&
+            (!active.HasValue || j.Active == active.Value)
+            , includes: x => new List<object> { x.CreatedBy, x.Applicants }
+            , sorts: [sort]
+            , pagination: pagination);
+
         var totalCount = await _jobRepository.CountAsync(j => 
             (string.IsNullOrEmpty(searchTerm) || j.Title.Contains(searchTerm) || j.Department.Contains(searchTerm) || j.Location.Contains(searchTerm)) &&
             (!active.HasValue || j.Active == active.Value));
@@ -53,11 +61,9 @@ public class JobService : IJobService
 
     public async Task<JobDto?> GetJobByIdAsync(int id)
     {
-        var job = await _jobRepository.GetJobWithDetailsAsync(id);
-        if (job == null)
-        {
-            return null;
-        }
+        var job = await _jobRepository.GetByIdAsync(id
+            , includes: x => new List<object> { x.CreatedBy, x.Applicants.Select(y => new List<object> { y.AssignedTo, y.Documents, y.Interviews.Select(z => z.Interviewer) }) }
+            ) ?? throw new Exception("Job not found");
 
         return _mapper.Map<JobDto>(job);
     }
@@ -65,6 +71,7 @@ public class JobService : IJobService
     public async Task<bool> CreateJobAsync(CreateJobInput input, Guid createdById)
     {
         var job = _mapper.Map<Job>(input);
+
         job.CreatedById = createdById;
         job.PostedAt = DateTime.UtcNow;
 
@@ -129,8 +136,21 @@ public class JobService : IJobService
 
     public async Task<GetApplicantsOutput> GetApplicantsAsync(int page, int count, int? jobId = null, int? status = null, string? searchTerm = null)
     {
-        var applicants = await _applicantRepository.GetApplicantsWithDetailsAsync(page, count, jobId, status, searchTerm);
-        var totalCount = await _applicantRepository.GetApplicantCountAsync(jobId, status, searchTerm);
+        var sort = new Sort { Name = "AppliedAt", Type = SortTypes.DESC };
+        var pagination = new Pagination { Page = page, Count = count };
+
+        var applicants = await _applicantRepository.WhereAsync(a => 
+            (jobId == null || a.JobId == jobId) &&
+            (status == null || a.Status == status) &&
+            (string.IsNullOrEmpty(searchTerm) || a.FirstName.Contains(searchTerm) || a.LastName.Contains(searchTerm) || a.Email.Contains(searchTerm))
+            , includes: x => new List<object> { x.Job, x.AssignedTo, x.Documents, x.Interviews.Select(y => new List<object> { y.Interviewer, y.Scorecards.Select(z => z.Evaluator) }) }
+            , sorts: [sort]
+            , pagination: pagination);
+
+        var totalCount = await _applicantRepository.CountAsync(a =>
+            (jobId == null || a.JobId == jobId) &&
+            (status == null || a.Status == status) &&
+            (string.IsNullOrEmpty(searchTerm) || a.FirstName.Contains(searchTerm) || a.LastName.Contains(searchTerm) || a.Email.Contains(searchTerm)));
 
         var applicantDtos = _mapper.Map<List<ApplicantDto>>(applicants);
 
@@ -143,12 +163,10 @@ public class JobService : IJobService
 
     public async Task<ApplicantDto?> GetApplicantByIdAsync(int id)
     {
-        var applicant = await _applicantRepository.GetApplicantWithDetailsAsync(id);
-        if (applicant == null)
-        {
-            return null;
-        }
-
+        var applicant = await _applicantRepository.GetByIdAsync(id
+            , includes: x => new List<object> { x.Job, x.AssignedTo, x.Documents, x.Interviews.Select(y => new List<object> { y.Interviewer, y.Scorecards.Select(z => z.Evaluator) }) }
+            ) ?? throw new Exception("Application not found");
+        
         return _mapper.Map<ApplicantDto>(applicant);
     }
 
@@ -236,7 +254,7 @@ public class JobService : IJobService
             Data = reportData,
             AverageTimeToHire = averageTimeToHire,
             TotalHired = hiredApplicantsWithDates.Count,
-            TotalApplications = (int)await _applicantRepository.CountAsync(a => a.AppliedAt >= fromDate && a.AppliedAt <= toDate)
+            TotalApplications = await _applicantRepository.CountAsync(a => a.AppliedAt >= fromDate && a.AppliedAt <= toDate)
         };
     }
 }

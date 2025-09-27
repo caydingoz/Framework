@@ -1,4 +1,3 @@
-using AutoMapper;
 using Framework.Application;
 using Framework.AuthServer.Consts;
 using Framework.AuthServer.Dtos.JobService.Input;
@@ -9,7 +8,6 @@ using Framework.Shared.Dtos;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace Framework.AuthServer.Controllers;
 
@@ -28,11 +26,7 @@ public class JobController : BaseController
 
     [HttpGet]
     [Authorize(Policy = OperationNames.Job + PermissionAccessTypes.ReadAccess)]
-    public async Task<GeneralResponse<GetJobsOutput>> GetJobsAsync(
-        [FromQuery] int page = 0, 
-        [FromQuery] int count = 10, 
-        [FromQuery] string? searchTerm = null, 
-        [FromQuery] bool? active = null)
+    public async Task<GeneralResponse<GetJobsOutput>> GetJobsAsync([FromQuery] int page = 0, [FromQuery] int count = 10, [FromQuery] string? searchTerm = null, [FromQuery] bool? active = null)
     {
         return await WithLoggingGeneralResponseAsync(async () =>
         {
@@ -56,7 +50,7 @@ public class JobController : BaseController
     {
         return await WithLoggingGeneralResponseAsync(async () =>
         {
-            var userId = GetCurrentUserId();
+            var userId = GetUserIdGuid();
             return await _jobService.CreateJobAsync(input, userId);
         });
     }
@@ -83,22 +77,12 @@ public class JobController : BaseController
     }
 
     [HttpPost("{id}/apply")]
-    [AllowAnonymous] // Allow anonymous job applications
+    [AllowAnonymous]
     public async Task<GeneralResponse<bool>> ApplyForJobAsync(int id, ApplyJobInput input, IFormFile? resume)
     {
         return await WithLoggingGeneralResponseAsync(async () =>
         {
             return await _jobService.ApplyForJobAsync(id, input, resume);
         });
-    }
-
-    private Guid GetCurrentUserId()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.Name)?.Value;
-        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-        {
-            throw new UnauthorizedAccessException("Invalid user ID in token");
-        }
-        return userId;
     }
 }
